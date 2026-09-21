@@ -1,0 +1,11 @@
+.head {
+  margin-bottom: 24px;
+}
+
+/* .section-heading 已自带 20px 下边距，有副标题时收紧一点 */
+.head .lead {
+  margin-top: -8px;
+  max-width: 62ch;
+  color: var(--muted);
+  font-size: .95rem;
+}

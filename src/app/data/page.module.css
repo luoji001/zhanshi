@@ -1,0 +1,34 @@
+/* 数据页顶部的返回条。全站没有导航栏，这里与首页的按钮是两个页面之间仅有的通路，
+   所以它必须一直在、且在第一屏可见（不跟随滚动、不做折叠）。 */
+.backBar {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 20px 24px 0;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  color: var(--muted);
+  font-size: .88rem;
+  font-weight: 600;
+  transition: color var(--transition);
+}
+
+.back:hover {
+  color: var(--accent);
+}
+
+/* 焦点环不能省：全站没有导航栏，键盘用户进出这个页面全靠这个链接 */
+.back:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* 与 .section-container 的 767px 断点保持一致 */
+@media (max-width: 767px) {
+  .backBar {
+    padding: 16px 16px 0;
+  }
+}

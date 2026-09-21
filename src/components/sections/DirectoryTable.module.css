@@ -1,0 +1,261 @@
+/* 配色一律走 globals.css 的令牌，不要硬编码颜色。
+   新出现的文字/底色组合都要过 WCAG AA 4.5:1，改配色前先重新验算。 */
+
+/* ─── 工具栏 ─────────────────────────────────────────────────────────── */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 视觉上隐藏但仍可被读屏与 label 关联 —— 不要用 display:none，那会一起藏掉 */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.search {
+  width: 280px;
+  max-width: 100%;
+  padding: 9px 13px;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: .92rem;
+  transition: border-color var(--transition);
+}
+.search::placeholder {
+  /* #6b7280 对白底 4.83:1，过 AA；不要换成更浅的 --muted2 以外的灰 */
+  color: var(--muted2);
+}
+.search:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+
+.filterLabel {
+  color: var(--muted);
+  font-size: .86rem;
+  font-weight: 600;
+}
+
+.select {
+  padding: 9px 11px;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: .92rem;
+  max-width: 200px;
+}
+.select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.clear {
+  padding: 8px 14px;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--accent);
+  font-size: .86rem;
+  font-weight: 600;
+  transition: border-color var(--transition), background var(--transition);
+}
+.clear:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.count {
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: .84rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── 表格容器 ───────────────────────────────────────────────────────── */
+.wrap {
+  padding: 0;
+}
+
+.scroll {
+  overflow-x: auto;
+}
+/* 桌面端给表格自身一个高度上限：表头吸顶只在「会纵向滚动的祖先」里生效，
+   而仅设 overflow-x 的容器本身不纵向滚动，不加这段 sticky 就是死的。
+   手机端不设，避免出现嵌套的双向滚动。 */
+@media (min-width: 768px) {
+  .scroll {
+    max-height: 70vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+/* .card 是 overflow:hidden，外扩的默认焦点圈会被裁掉，故用内描边 */
+.scroll:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.table {
+  width: 100%;
+  min-width: 800px; /* 6 列在手机上放不下，靠 .scroll 横向滚动 + 上面的提示。
+                       800 是最窄列（15% = 120px）仍装得下「是否验证 + 排序箭头」的临界值 */
+  /* sticky 表头必须用 separate：collapse 模式下单元格边框会随内容一起滚走 */
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed; /* 列宽交给 colgroup，长邮箱不会把列撑开 */
+  text-align: left;
+}
+
+/* 内边距挪到 .sortBtn 上，让整个表头单元格都可点（鼠标用户不必瞄准文字） */
+.table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 0;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border2);
+  color: var(--muted);
+  font-size: .85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.sortBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  /* 与 td 的纵向内边距保持一致，表头与数据行的分隔线才对得齐 */
+  padding: 11px 18px;
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  text-align: left;
+  transition: color var(--transition);
+}
+.sortBtn:hover {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+/* th 是 sticky 且外层 .card 是 overflow:hidden，外扩焦点圈会被裁掉，故用内描边 */
+.sortBtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* 箭头是「这列可排序 / 当前按这列排」的视觉状态，受 WCAG 1.4.11 约束，必须 ≥3:1。
+   早期版本给未激活箭头加了 opacity:.55，算下来只有 2.24:1，不达标，故改为整色。
+   实测：--muted 于 --surface2 = 5.31:1，--accent 于 --surface2 = 7.53:1。 */
+.arrow {
+  font-size: .72rem;
+  color: var(--muted);
+}
+.arrowOn {
+  color: var(--accent);
+}
+
+/* 数据行的纵向内边距。原本是 14px（行高 52px），对数据表来说太松：
+   14 行就要占 728px，一屏看不到几条。收到 11px 后行高约 44px，
+   仍高于 WCAG 2.5.8 的 24px 最小目标尺寸，触摸也不局促。 */
+.table td {
+  padding: 11px 18px;
+  border-bottom: 1px solid var(--border);
+  font-size: .94rem;
+  vertical-align: middle;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table tbody tr:hover td {
+  background: var(--surface2);
+}
+
+/* 列宽按内容比例分配，不均分（均分会让「价格」这类短列出现大段空白）。
+   百分比之和必须是 100：table-layout 是 fixed，宽度全靠这里。 */
+.col_name { width: 17%; }
+.col_goods { width: 16%; }
+.col_price { width: 11%; }
+.col_phone { width: 19%; }
+.col_email { width: 22%; }
+.col_verified { width: 15%; }
+
+/* 价格列的数据是右对齐的，表头必须跟着右对齐，否则表头与数字错位 */
+.numericHead .sortBtn {
+  justify-content: flex-end;
+}
+
+/* 价格右对齐 + 等宽数字，便于纵向比价 */
+.numericCell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.emailCell {
+  overflow-wrap: anywhere;
+}
+
+.link {
+  color: var(--accent);
+}
+.link:hover {
+  text-decoration: underline;
+}
+
+/* 空单元格的占位符。用 --muted2 而不是更浅的灰，保证 4.83:1 过 AA */
+.blank {
+  color: var(--muted2);
+}
+
+.empty {
+  padding: 40px 18px;
+  text-align: center;
+  color: var(--muted);
+}
+.clearInline {
+  margin-left: 10px;
+  color: var(--accent);
+  font-size: .9rem;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+@media (max-width: 767px) {
+  .search {
+    width: 100%;
+  }
+  .field {
+    width: 100%;
+  }
+  .select {
+    max-width: none;
+    flex: 1;
+  }
+  .sortBtn { padding: 11px 12px; }
+  .table td { padding: 12px 12px; }
+}

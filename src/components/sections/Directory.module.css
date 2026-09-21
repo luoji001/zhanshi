@@ -1,0 +1,27 @@
+/* 名录区块底色：全站唯一带蓝调的分区，用来把「主角区块」从素色页面里托出来 */
+.section {
+  background: var(--band-feature);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+/* .section-container 自带 40px 上下内边距，区块已有底色分隔，收紧一点 */
+.section :global(.section-container) {
+  padding-top: 36px;
+  padding-bottom: 36px;
+}
+
+/* 横向滑动提示：只在表格确实会溢出的宽度区间出现。
+   .table 的 min-width 是 720px，加 .section-container 左右各 16px 内边距，
+   视口窄于 752px 才开始横向滚动 —— 提示区间与真正的滚动区间对齐，不会「提示了却不用滑」。 */
+.hint {
+  display: none;
+}
+@media (max-width: 751px) {
+  .hint {
+    display: block;
+    margin-bottom: 10px;
+    color: var(--muted);
+    font-size: .82rem;
+  }
+}

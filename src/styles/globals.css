@@ -1,0 +1,92 @@
+/* ─── CSS Variables ──────────────────────────────────────────────────── */
+:root {
+  /* 全站只有浅色主题。显式声明 color-scheme 是为了堵住浏览器/系统层面的自动变暗：
+     深色系统下 UA 会把表单控件与滚动条渲染成深色，Chrome 的 Auto Dark Theme 更是
+     会直接重绘页面；`only light` 是它的退出开关，`light` 供旧浏览器回退。 */
+  color-scheme: light;
+  color-scheme: only light;
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --surface2: #eef0f3;
+  --surface3: #e2e5ea;
+  --accent: #1b4b8f;
+  --accent-soft: rgba(27,75,143,.10);
+  /* 压在 --accent 上的文字色。不要在任何组件里硬编码 #fff，统一走这个变量
+     （#ffffff 对 --accent #1b4b8f 是 8.57:1，过 WCAG AA）。 */
+  --on-accent: #ffffff;
+  --text: #1a1d21;
+  --muted: #5c636e;
+  /* 浅色下 #868d99 对白只有 3.34:1，不达 AA；#6b7280 = 4.83:1 */
+  --muted2: #6b7280;
+  --border: #e2e5ea;
+  --border2: #c9ced6;
+  /* 名录区块的底色：全站唯一带蓝调的分区，用来把「主角区块」从素色页面里托出来，
+     同时隔开相邻两块素色区（概览 → 名录 → 数据说明）。 */
+  --band-feature: #eef2fa;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 1px 3px rgba(0,0,0,.10);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.08);
+  --font: 'Inter', 'Noto Sans SC', system-ui, sans-serif;
+  --transition: .2s ease;
+}
+/* ─── Reset ──────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; font-size: 15px; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+a { color: inherit; text-decoration: none; }
+img { display: block; max-width: 100%; }
+ul { list-style: none; }
+button { cursor: pointer; border: none; background: none; font-family: var(--font); }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
+
+/* 锚点跳转后的标题留白：概览区块的两个按钮会跳到 #directory / #data-source，
+   不留这段间距标题会紧贴视口顶边。 */
+section[id] { scroll-margin-top: 20px; }
+
+/* ─── Utilities ──────────────────────────────────────────────────────── */
+/* 纵向内边距 48px → 40px：全站 3 个区块，每处省 16px，整页少约 48px 的空转。
+   这是个数据展示站，页面高度应该花在数据上，不是花在区块之间的留白上。 */
+.section-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+.section-heading {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-heading::before {
+  content: '';
+  display: block;
+  width: 4px; height: 20px;
+  background: var(--accent);
+  border-radius: 2px;
+}
+
+/* ─── Card base ──────────────────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.card:hover { border-color: var(--border2); box-shadow: var(--shadow-sm); }
+
+/* ─── Responsive ─────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .section-container { padding: 32px 16px; }
+}

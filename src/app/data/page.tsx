@@ -1,0 +1,30 @@
+import type { Metadata } from 'next';
+import Link from 'next/link';
+import Directory from '@/components/sections/Directory';
+import DataSource from '@/components/sections/DataSource';
+import styles from './page.module.css';
+
+export const metadata: Metadata = {
+  title: '名录数据与数据说明',
+  description: 'Excel 源文件中的全部名录记录，附字段口径与数据来源说明。',
+};
+
+/**
+ * 数据页 = 名录表格（主角）+ 数据说明。首页只留概览，两块数据内容都搬到了这里。
+ *
+ * 全站没有导航栏，两页之间只有两条通路：首页的两个按钮（见 lib/content.ts 的
+ * overview.actions）与这里的返回链接。改动其中一个，记得同步另一个。
+ */
+export default function DataPage() {
+  return (
+    <>
+      <div className={styles.backBar}>
+        <Link href="/" className={styles.back}>
+          ← 返回概览
+        </Link>
+      </div>
+      <Directory />
+      <DataSource />
+    </>
+  );
+}

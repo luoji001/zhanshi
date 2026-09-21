@@ -1,0 +1,158 @@
+/* 配色一律走 globals.css 的令牌，不要在这里硬编码颜色 */
+.overview {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(900px 420px at 82% -10%, var(--accent-soft), transparent 70%),
+    linear-gradient(180deg, var(--surface), var(--bg));
+  border-bottom: 1px solid var(--border);
+}
+
+.inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 88px 24px 76px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 56px;
+  align-items: center;
+}
+
+.title {
+  /* clamp 的下限 1.6rem 保证 375px 屏上标题仍够醒目，上限 3rem 是大屏下的收敛点。
+     keep-all 让断行只发生在标点处而不是从词中间截断 —— 当前标题「源头厂商名录」
+     只有 6 个字用不到它，留着是防将来换成长标题时被逐字拆开；
+     overflow-wrap: anywhere 是 keep-all 兜底：整段实在放不下时仍能断，不会溢出容器。 */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  max-width: 20em;
+  font-size: clamp(1.6rem, 4.4vw, 3rem);
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: -.01em;
+}
+
+.lead {
+  max-width: 60ch;
+  margin-top: 20px;
+  color: var(--muted);
+  font-size: 1.02rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 34px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 11px 24px;
+  border-radius: var(--radius);
+  font-size: .92rem;
+  font-weight: 600;
+  transition: all var(--transition);
+}
+
+/* 压在 --accent 上的文字必须用 --on-accent，不要写 #fff */
+.primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.primary:hover {
+  filter: brightness(1.1);
+  box-shadow: var(--shadow);
+}
+
+.ghost {
+  border: 1px solid var(--border2);
+  color: var(--text);
+  background: var(--surface);
+}
+.ghost:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ─── 数据概览信息块 ─────────────────────────────────────────────────── */
+.scale {
+  /* 比原先的 264px 宽一点：「0.1 ~ 13.1」这类区间值比纯数字长得多 */
+  width: 296px;
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.scaleTitle {
+  color: var(--muted);
+  font-size: .8rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+}
+.scaleList {
+  margin: 12px 0 0;
+}
+.scaleItem {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+.scaleItem:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+.scaleItem dt {
+  color: var(--muted);
+  font-size: .86rem;
+  white-space: nowrap;
+}
+.scaleItem dd {
+  color: var(--text);
+  text-align: right;
+}
+.scaleItem dd b {
+  color: var(--accent);
+  font-size: 1.2rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  /* 换行只可能发生在「0.1 ~ 13.1」的空格处；区间本身不许被拆开 */
+  white-space: nowrap;
+}
+.scaleItem dd span {
+  margin-left: 3px;
+  color: var(--muted);
+  font-size: .8rem;
+}
+.scaleMeta {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  color: var(--muted2);
+  font-size: .78rem;
+}
+.scaleLink {
+  display: inline-block;
+  margin-top: 14px;
+  color: var(--accent);
+  font-size: .88rem;
+  font-weight: 600;
+}
+.scaleLink:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 1023px) {
+  /* 窄屏改成上下堆叠，概览块占满一行 */
+  .inner { grid-template-columns: 1fr; gap: 34px; }
+  .scale { width: 100%; }
+}
+
+@media (max-width: 767px) {
+  .inner { padding: 56px 16px 48px; }
+}

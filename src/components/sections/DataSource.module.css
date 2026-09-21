@@ -1,0 +1,116 @@
+.panel {
+  padding: 26px 28px;
+}
+
+/* ─── 来源信息 ───────────────────────────────────────────────────────── */
+.meta {
+  margin-bottom: 26px;
+}
+.metaRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 16px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--border);
+}
+.metaRow:first-child {
+  padding-top: 0;
+}
+.metaRow:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+/* 与下方 .fieldName 用同一个 rem 宽度，两处标签的左边缘与值的起始位置对齐。
+   用 rem 而不是 em：两处字号不同（.88rem / .9rem），em 会算出不同宽度。 */
+.metaLabel {
+  flex-shrink: 0;
+  width: 5.75rem;
+  color: var(--muted);
+  font-size: .88rem;
+}
+.metaValue {
+  color: var(--text);
+  font-size: .92rem;
+  overflow-wrap: anywhere;
+}
+.code {
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: var(--surface2);
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .88rem;
+}
+
+/* ─── 字段口径 ───────────────────────────────────────────────────────── */
+.subTitle {
+  margin-bottom: 12px;
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+/* 逐行铺开，与上方 .metaRow 同一套「标签 + 值」节奏。
+   早期版本是三列网格（auto-fit minmax(280px,1fr)）：5 项填不满 3 列，末行留一个空洞；
+   且「价格」的描述较长会折成两行，把整行撑高，同一网格里两行高度不等，看着很毛糙。
+   单列铺开既没有空洞也不会参差，读起来像一份规格表。 */
+.fields {
+  margin-bottom: 24px;
+}
+.fieldItem {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding: 9px 0;
+  border-bottom: 1px dashed var(--border);
+  font-size: .9rem;
+}
+.fieldItem:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.fieldName {
+  flex-shrink: 0;
+  width: 5.75rem;
+  color: var(--text);
+  font-weight: 600;
+}
+.fieldDesc {
+  color: var(--muted);
+}
+
+/* ─── 说明条目 ───────────────────────────────────────────────────────── */
+.notes {
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+.note {
+  position: relative;
+  padding: 8px 0 8px 18px;
+  color: var(--muted);
+  font-size: .88rem;
+  line-height: 1.65;
+}
+.note::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 17px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+@media (max-width: 767px) {
+  .panel {
+    padding: 20px 18px;
+  }
+  /* 不再把标签压成整行：窄屏下 5.75rem 的标签 + 值仍放得下，
+     与下方 .fieldItem 保持一致，避免同一张卡片里两套排布。 */
+  .metaLabel,
+  .fieldName {
+    width: 5.25rem;
+  }
+}
