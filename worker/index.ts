@@ -144,10 +144,17 @@ async function runSql(env: Env, sql: string): Promise<Record<string, unknown>[]>
  */
 const PV = 'sum(_sample_interval)';
 
+/**
+ * ⚠️ 方言是**实测**出来的，不是照 ClickHouse 文档写的 —— 两者不一样：
+ *   `INTERVAL 7 DAY`（裸数字）→ 422 sql parser error: Expected literal string, found: 7
+ *   `INTERVAL '7' DAY`（字符串）→ 通过
+ * 上面这几条连同 `toStartOfDay(now())`、`toDate(timestamp)`、`sum(_sample_interval)`、
+ * `count(DISTINCT index1)` 都已对真实 SQL API 跑通（2026-09-21）。改这里请先实测。
+ */
 const PERIODS: { label: string; where: string }[] = [
   { label: '今日', where: 'timestamp >= toStartOfDay(now())' },
-  { label: '近 7 天', where: 'timestamp > now() - INTERVAL 7 DAY' },
-  { label: '近 30 天', where: 'timestamp > now() - INTERVAL 30 DAY' },
+  { label: '近 7 天', where: "timestamp > now() - INTERVAL '7' DAY" },
+  { label: '近 30 天', where: "timestamp > now() - INTERVAL '30' DAY" },
   { label: '总计', where: '1 = 1' },
 ];
 
@@ -203,7 +210,7 @@ async function statsPage(env: Env, url: URL): Promise<Response> {
     const byDay = await runSql(
       env,
       `SELECT toDate(timestamp) AS d, ${PV} AS pv, count(DISTINCT index1) AS uv
-       FROM ${DATASET} WHERE timestamp > now() - INTERVAL 7 DAY
+       FROM ${DATASET} WHERE timestamp > now() - INTERVAL '7' DAY
        GROUP BY d ORDER BY d DESC`
     );
 
