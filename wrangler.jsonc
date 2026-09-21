@@ -1,0 +1,17 @@
+{
+  // Cloudflare Workers 静态资源托管配置。
+  //
+  // 本站是纯静态导出（next.config.ts 的 output: 'export' 产出 out/），
+  // 所以这里不需要 main 入口脚本 —— 一个「纯静态资源 Worker」就够了，
+  // 免费层下静态资源请求不计费也不限量。
+  //
+  // name 决定默认域名：<name>.<你的子域>.workers.dev，想改直接改这里。
+  "name": "zhanshi",
+  "compatibility_date": "2026-09-21",
+  "assets": {
+    // 必须是 next build 的导出目录，不是 .next/
+    "directory": "./out",
+    // next build 会产出 404.html，交给 Cloudflare 用作未命中页面
+    "not_found_handling": "404-page"
+  }
+}
