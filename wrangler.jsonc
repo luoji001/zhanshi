@@ -1,17 +1,40 @@
 {
-  // Cloudflare Workers 静态资源托管配置。
+  // Cloudflare Workers 配置。
   //
-  // 本站是纯静态导出（next.config.ts 的 output: 'export' 产出 out/），
-  // 所以这里不需要 main 入口脚本 —— 一个「纯静态资源 Worker」就够了，
-  // 免费层下静态资源请求不计费也不限量。
+  // 页面本身仍是纯静态导出（next.config.ts 的 output: 'export' 产出 out/），
+  // 由静态资源托管直接服务。但**现在有一个 main 入口脚本了** —— 它只做两件事：
+  // 给页面访问记一笔 PV/UV（见 worker/index.ts），以及提供站长自己看的 /api/stats。
+  // 它不参与渲染，页面内容完全没变。
   //
   // name 决定默认域名：<name>.<你的子域>.workers.dev，想改直接改这里。
   "name": "zhanshi",
+  "main": "worker/index.ts",
   "compatibility_date": "2026-09-21",
+
   "assets": {
     // 必须是 next build 的导出目录，不是 .next/
     "directory": "./out",
+    // Worker 需要它才能把请求交回静态资源（env.ASSETS.fetch）
+    "binding": "ASSETS",
     // next build 会产出 404.html，交给 Cloudflare 用作未命中页面
-    "not_found_handling": "404-page"
-  }
+    "not_found_handling": "404-page",
+
+    // ⚠️ 这几行是成本开关，别改成 true。
+    // Workers 静态资源默认「资产优先」：命中静态文件的请求根本不触发 Worker。
+    // 而 / 与 /data 恰恰就是静态文件（out/index.html、out/data.html），
+    // 不开前置就一个访问都记不到。
+    // 但写成布尔 true 会让**每个**请求（含 _next/static/*）都变成计费的 Worker 调用，
+    // 白白丢掉「静态资源请求免费且不限量」这一条。
+    // 用 glob 数组则只有列出的路径走 Worker —— 页面浏览与统计接口计费，其余照旧免费。
+    "run_worker_first": ["/", "/data", "/data/", "/api/*"]
+  },
+
+  // PV/UV 的落库目标。Analytics Engine 是时序事件存储，不是关系库：
+  // 写入用 writeDataPoint，读取走 SQL API。它按写入量计费，免费额度足够本站。
+  "analytics_engine_datasets": [
+    { "binding": "ANALYTICS", "dataset": "zhanshi_pageviews" }
+  ],
+
+  // 打开日志，方便确认「哪些请求真的进了 Worker」（验证资产优先没被破坏）
+  "observability": { "enabled": true }
 }

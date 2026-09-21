@@ -23,6 +23,11 @@
   /* 名录区块的底色：全站唯一带蓝调的分区，用来把「主角区块」从素色页面里托出来，
      同时隔开相邻两块素色区（概览 → 名录 → 数据说明）。 */
   --band-feature: #eef2fa;
+  /* 名录表格的斑马纹底色。**不要改成 --surface2**（表格 hover 用的那个）：
+     --muted2（空值「—」的色）压在 --surface2 #eef0f3 上只有 4.23:1，低于 AA 4.5。
+     #f8f9fb 对表内各种文字色的实测值：--muted2 4.59:1、--muted 5.75:1、
+     --accent（电话/邮箱链接）8.14:1、--text 16.06:1 —— 全部达标。 */
+  --surface-zebra: #f8f9fb;
   --radius: 10px;
   --radius-sm: 6px;
   --shadow: 0 1px 3px rgba(0,0,0,.10);

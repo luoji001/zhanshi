@@ -87,32 +87,52 @@
   background: var(--accent-soft);
 }
 
+/* 条数收进工具条末尾靠右，桌面端整条工具条由两行变一行（手机端见下面媒体查询） */
 .count {
-  margin-bottom: 10px;
+  margin-left: auto;
   color: var(--muted);
   font-size: .84rem;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 /* ─── 表格容器 ───────────────────────────────────────────────────────── */
+/* .card 自带 overflow:hidden，但 hidden 会建立**滚动容器**，把 sticky 表头锁死在卡片内
+   —— 实测：页面滚 600px 后表头 top = -299，即跟着卡片一起滚走，吸顶失效。
+   故这里覆盖成 overflow:clip：只裁剪渲染、不建立滚动容器，圆角照旧裁得住，
+   而吸顶链路上的滚动祖先仍是视口。同一场景实测 top = 0。**不要改回 hidden。** */
 .wrap {
   padding: 0;
+  overflow: clip;
 }
 
-.scroll {
-  overflow-x: auto;
-}
-/* 桌面端给表格自身一个高度上限：表头吸顶只在「会纵向滚动的祖先」里生效，
-   而仅设 overflow-x 的容器本身不纵向滚动，不加这段 sticky 就是死的。
-   手机端不设，避免出现嵌套的双向滚动。 */
-@media (min-width: 768px) {
+/* 表格随页面正常滚动，表头吸顶到视口顶部（不再用 70vh 把表格关进内部滚动区 ——
+   那样 1440×900 下 21 条只露出 12 条，卡片底边像被切了一刀，且没有任何「下面还有」的暗示）。
+   分档依据只有一个：表格会不会横向溢出。.table 的 min-width 是 800px、
+   .section-container 左右各 24px 内边距，故视口 ≥ 848px 才装得下。
+   横向滚动与视口吸顶在 CSS 里不可兼得（overflow-x:auto 同样会建立滚动容器，
+   实测表头 top = -299），所以窄屏退化为「横向可滑、表头不吸顶」。 */
+@media (min-width: 848px) {
   .scroll {
-    max-height: 70vh;
-    overflow-y: auto;
-    overscroll-behavior: contain;
+    overflow: visible;
   }
 }
-/* .card 是 overflow:hidden，外扩的默认焦点圈会被裁掉，故用内描边 */
+@media (max-width: 847px) {
+  .scroll {
+    overflow-x: auto;
+  }
+  /* 全局 ::-webkit-scrollbar 只有 6px 且轨道透明，macOS 覆盖式滚动条不滚动时不显示 ——
+     结果是「横向能滑却看不出来」。显式设置 ::-webkit-scrollbar 会强制滚动条常显。
+     只在需要横滑的这一档做：桌面端没有横向溢出，常显滚动条只是噪声。 */
+  .scroll::-webkit-scrollbar {
+    height: 8px;
+  }
+  .scroll::-webkit-scrollbar-thumb {
+    background: var(--surface3);
+    border-radius: 4px;
+  }
+}
+/* .card 是 overflow:clip，外扩的默认焦点圈会被裁掉，故用内描边 */
 .scroll:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: -2px;
@@ -137,6 +157,9 @@
   padding: 0;
   background: var(--surface2);
   border-bottom: 1px solid var(--border2);
+  /* 吸顶后表头会压住数据行，光靠 border-bottom 分不清是「表头」还是「一行数据」，
+     补一道极轻的投影拉开层次。用令牌而不是硬编码 rgba。 */
+  box-shadow: var(--shadow-sm);
   color: var(--muted);
   font-size: .85rem;
   font-weight: 600;
@@ -185,6 +208,14 @@
   border-bottom: 1px solid var(--border);
   font-size: .94rem;
   vertical-align: middle;
+}
+
+/* 斑马纹。表宽约 1232px、6 列，只有 1px 行分隔线时横向读数容易串行。
+   ⚠️ 这条必须写在下面 :hover 之前：两者 specificity 相同（都是 0,2,3），
+   靠源码顺序决胜，hover 在前就会被斑马纹盖掉、鼠标移上去没反应。
+   底色用 --surface-zebra 而不是 --surface2，原因见 globals.css 的注释（AA 对比度）。 */
+.table tbody tr:nth-child(even) td {
+  background: var(--surface-zebra);
 }
 
 .table tbody tr:last-child td {
@@ -251,6 +282,13 @@
   }
   .field {
     width: 100%;
+  }
+  /* 厂商那一栏不占满整行，右侧让给「共 N 条」，工具条由三行压到两行。
+     必须写在 .field 之后：同 specificity 时靠源码顺序覆盖 width。 */
+  .fieldVendor {
+    width: auto;
+    flex: 1 1 auto;
+    min-width: 0;
   }
   .select {
     max-width: none;

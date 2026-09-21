@@ -18,10 +18,18 @@ export const metadata: Metadata = {
 export default function DataPage() {
   return (
     <>
+      {/* 外层铺满全宽的蓝带（与下面 Directory 区块接成一条），内层负责 1280px 对齐 */}
       <div className={styles.backBar}>
-        <Link href="/" className={styles.back}>
-          ← 返回概览
-        </Link>
+        <div className={styles.backBarInner}>
+          {/* 箭头与文字各占一个 span：箭头要单独 hover 位移，混在一段文本里推不动。
+              aria-hidden 是因为「←」对读屏是噪音，链接文字「返回概览」已经说清了去处。 */}
+          <Link href="/" className={styles.back}>
+            <span className={styles.backArrow} aria-hidden="true">
+              ←
+            </span>
+            <span>返回概览</span>
+          </Link>
+        </div>
       </div>
       <Directory />
       <DataSource />

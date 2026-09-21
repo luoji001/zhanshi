@@ -8,13 +8,18 @@
   border-bottom: 1px solid var(--border);
 }
 
+/* 两栏靠拢居中。原先写的是 minmax(0,1fr) auto：左栏被 1fr 撑到约 880px，
+   而文案实际只占约 450px，中间空出约 430px 的纯留白。
+   改成 auto auto 后左栏按内容宽度收敛，加上 justify-content 让这一对居中 ——
+   首页只有这一块内容，不存在与其它区块左边缘对齐的问题。 */
 .inner {
-  max-width: 1280px;
+  max-width: 1120px;
   margin: 0 auto;
-  padding: 88px 24px 76px;
+  padding: 60px 24px 52px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 56px;
+  grid-template-columns: auto auto;
+  justify-content: center;
+  gap: clamp(40px, 6vw, 88px);
   align-items: center;
 }
 
@@ -34,7 +39,7 @@
 
 .lead {
   max-width: 60ch;
-  margin-top: 20px;
+  margin-top: 16px;
   color: var(--muted);
   font-size: 1.02rem;
 }
@@ -43,7 +48,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  margin-top: 34px;
+  margin-top: 28px;
 }
 
 .btn {
@@ -136,16 +141,8 @@
   color: var(--muted2);
   font-size: .78rem;
 }
-.scaleLink {
-  display: inline-block;
-  margin-top: 14px;
-  color: var(--accent);
-  font-size: .88rem;
-  font-weight: 600;
-}
-.scaleLink:hover {
-  text-decoration: underline;
-}
+/* .scaleLink（卡片底部的「查看全部数据 →」）已删 —— 它与左侧主按钮同指 /data。
+   样式一并移除，避免留下无人引用的类。 */
 
 @media (max-width: 1023px) {
   /* 窄屏改成上下堆叠，概览块占满一行 */
@@ -154,5 +151,6 @@
 }
 
 @media (max-width: 767px) {
-  .inner { padding: 56px 16px 48px; }
+  /* 桌面端上边距已收到 60px，窄屏跟着收到 40px，保持「窄屏更紧」的梯度 */
+  .inner { padding: 40px 16px 36px; }
 }

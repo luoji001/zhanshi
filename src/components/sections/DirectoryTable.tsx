@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 // ⚠️ 只允许**类型**导入。本文件是客户端组件，而 suppliers.ts 引了 node:fs；
 // 一旦改成值导入（例如 import { DIRECTORY_COLUMNS }），node:fs 会被拖进浏览器包，构建直接失败。
 import type { DirectoryColumn, SupplierRow } from '@/lib/suppliers';
@@ -25,6 +25,30 @@ interface Props {
   columns: readonly DirectoryColumn[];
   title: string;
   emptyText: string;
+}
+
+/**
+ * 表格会横向溢出的视口区间。848 = 表格 min-width 800 + .section-container 左右各 24px，
+ * 与 DirectoryTable.module.css 里 .scroll 的分档是同一个数，改一处必须改另一处。
+ */
+const H_SCROLL_QUERY = '(max-width: 847px)';
+
+/**
+ * 只有确实能横向滚动时才让滚动容器可聚焦（WCAG 2.1.1：键盘用户得够得着溢出的列）。
+ * 表格改为整页滚动后，宽屏下这个容器不再横向溢出，恒挂 tabIndex 会多出一个
+ * 「聚焦了却什么都滚不动」的空 tab 停靠点。
+ */
+function useHorizontallyScrollable(): boolean {
+  // 初值 false：服务端渲染时拿不到视口宽度，先按「不需要焦点」渲染，挂载后再校正。
+  const [scrollable, setScrollable] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia(H_SCROLL_QUERY);
+    const sync = () => setScrollable(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
+  return scrollable;
 }
 
 /** 行内容拼成稳定 key；相同的行可能出现多次，用出现序号区分 */
@@ -81,6 +105,8 @@ export default function DirectoryTable({ rows, columns, title, emptyText }: Prop
     setVendor('');
   };
 
+  const hScroll = useHorizontallyScrollable();
+
   return (
     <>
       <div className={styles.toolbar}>
@@ -99,7 +125,7 @@ export default function DirectoryTable({ rows, columns, title, emptyText }: Prop
           />
         </div>
 
-        <div className={styles.field}>
+        <div className={`${styles.field} ${styles.fieldVendor}`}>
           <label className={styles.filterLabel} htmlFor="directory-vendor">
             厂商
           </label>
@@ -123,23 +149,26 @@ export default function DirectoryTable({ rows, columns, title, emptyText }: Prop
             清除筛选
           </button>
         )}
-      </div>
 
-      {/* 结果数用 aria-live 播报：搜索时读屏用户需要知道筛完还剩几条 */}
-      <p className={styles.count} role="status" aria-live="polite">
-        共 {rows.length} 条
-        {filtered.length !== rows.length && `，当前显示 ${filtered.length} 条`}
-      </p>
+        {/* 结果数用 aria-live 播报：搜索时读屏用户需要知道筛完还剩几条。
+            放在工具条内（靠 margin-left:auto 顶到右侧），桌面端工具条因此只占一行。 */}
+        <p className={styles.count} role="status" aria-live="polite">
+          共 {rows.length} 条
+          {filtered.length !== rows.length && `，当前显示 ${filtered.length} 条`}
+        </p>
+      </div>
 
       <div className={`card ${styles.wrap}`}>
         {/* 窄屏下表格横向溢出，必须让该容器可键盘聚焦：
             Chrome/Firefox 会把无聚焦子元素的滚动容器自动变成焦点停靠点，Safari 不会，
-            那样键盘用户将永远看不到最后一列（WCAG 2.1.1）。这两个属性不要删。 */}
+            那样键盘用户将永远看不到最后一列（WCAG 2.1.1）。
+            宽屏下表格已不横向溢出，此时再挂 tabIndex 只会多一个空的停靠点，故按 hScroll 条件化。
+            这几个属性绑在一起增减：role/aria-label 只对可滚动的那种状态才有意义。 */}
         <div
           className={styles.scroll}
-          tabIndex={0}
-          role="group"
-          aria-label={`${title}表格，窄屏可横向滚动`}
+          tabIndex={hScroll ? 0 : undefined}
+          role={hScroll ? 'group' : undefined}
+          aria-label={hScroll ? `${title}表格，窄屏可横向滚动` : undefined}
         >
           <table className={styles.table} aria-labelledby="directory-title">
             <colgroup>

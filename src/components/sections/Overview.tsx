@@ -49,9 +49,9 @@ export default function Overview() {
           {source.updatedAt !== '' && (
             <p className={styles.scaleMeta}>源文件更新于 {source.updatedAt}</p>
           )}
-          <Link className={styles.scaleLink} href="/data">
-            查看全部数据 →
-          </Link>
+          {/* 这里曾有一个「查看全部数据 →」链接，已删：它与左侧主按钮「查看名录数据」
+              同指 /data，是重复入口。首页现在只留两个去向不同的操作
+              （见 lib/content.ts 的 overview.actions），不要再加回来。 */}
         </aside>
       </div>
     </section>

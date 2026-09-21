@@ -1,23 +1,32 @@
-/* 名录区块底色：全站唯一带蓝调的分区，用来把「主角区块」从素色页面里托出来 */
+/* 名录区块底色：全站唯一带蓝调的分区，用来把「主角区块」从素色页面里托出来。
+   ⚠️ **这里没有 border-top，是故意的**：这条带子从页面顶端就开始了 ——
+   上面 app/data/page.module.css 的 .backBar 用的是同一个 --band-feature，
+   两者接成一条连续的带。加回 border-top 会有一条贯穿全宽的线，
+   把「返回概览」和「名录数据」切成互不相干的两块，而它们本是一个头部块。 */
 .section {
   background: var(--band-feature);
-  border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
 }
 
-/* .section-container 自带 40px 上下内边距，区块已有底色分隔，收紧一点 */
+/* .section-container 自带 40px 上下内边距，区块已有底色分隔，收紧一点。
+   上内边距只留 22px：上方紧邻返回胶囊（.backBar 自己还有 22px），
+   两段相加才是「胶囊 → 标题」的真实间距，不要再按 36px 的老值去调。 */
 .section :global(.section-container) {
-  padding-top: 36px;
+  padding-top: 22px;
   padding-bottom: 36px;
 }
 
 /* 横向滑动提示：只在表格确实会溢出的宽度区间出现。
-   .table 的 min-width 是 720px，加 .section-container 左右各 16px 内边距，
-   视口窄于 752px 才开始横向滚动 —— 提示区间与真正的滚动区间对齐，不会「提示了却不用滑」。 */
+   .table 的 min-width 是 800px（见 DirectoryTable.module.css），.section-container 左右各 24px
+   内边距，故视口 ≥ 848px 才装得下、窄于 848px 才开始横向滚动 ——
+   提示区间与真正的滚动区间对齐，不会「提示了却不用滑」。
+   ⚠️ 这个 847 与 DirectoryTable.module.css 里 .scroll 的分档（以及 DirectoryTable.tsx 的
+   H_SCROLL_QUERY）是同一个数，三处必须一起改。
+   （本注释原先写的是 720px / 752px，那是表格还只有 720px 时的旧值，早已过期。） */
 .hint {
   display: none;
 }
-@media (max-width: 751px) {
+@media (max-width: 847px) {
   .hint {
     display: block;
     margin-bottom: 10px;
