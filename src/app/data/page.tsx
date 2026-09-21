@@ -4,9 +4,12 @@ import Directory from '@/components/sections/Directory';
 import DataSource from '@/components/sections/DataSource';
 import styles from './page.module.css';
 
+// description 与首页 layout.tsx 那条**刻意写得不一样**：两页摘要重复是 SEO 减分项。
+// 这条只讲这一页有什么（完整表格 + 能检索排序 + 附口径说明），不复述首页的定位。
 export const metadata: Metadata = {
   title: '名录数据与数据说明',
-  description: 'Excel 源文件中的全部名录记录，附字段口径与数据来源说明。',
+  description:
+    '完整的厂商名录表格，可按关键词检索、按厂商筛选、点表头排序，并附字段口径与数据来源说明。',
 };
 
 /**
