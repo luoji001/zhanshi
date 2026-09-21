@@ -8,7 +8,7 @@
  * 浏览器包、构建直接失败。
  *
  * 设计原则与 xlsx.ts 一致：**结构不符一律抛错**，不猜、不跳过。
- * 列口径是硬约定：固定 6 列（厂商名称 / 供应货品 / 价格 / 联系电话 / 邮件地址 / 是否验证），
+ * 列口径是硬约定：固定 7 列（厂商名称 / 品类 / 供应货品 / 价格 / 联系电话 / 邮件地址 / 是否验证），
  * Excel 里多出的列宁可报错也不静默丢弃。
  */
 
@@ -22,20 +22,28 @@ import { readXlsxSheet } from './xlsx.ts';
 export const EXCEL_PATH = 'src/excel/源头厂商.xlsx';
 
 /**
- * 名录表格的一行。字段顺序与固定 6 列一一对应，**顺序不可改**。
- * 全部为字符串：价格、电话**保持 Excel 里的原样**，不做数值化或格式化——
+ * 名录表格的一行。字段顺序与固定 7 列一一对应，**顺序不可改**。
+ * 全部为字符串：价格**保持 Excel 里的原样**，不做数值化或格式化——
  * 任何再加工都等于替数据源编造内容。
+ *
+ * ⚠️ **两个例外：电话与邮箱在离开本层之前已被遮挡**（见 maskPhone / maskEmail）。
+ * 它们不是源文件里的原值，这是唯一一处「站点改动了数据源内容」的地方，是有意为之。
  */
 export interface SupplierRow {
   /** 厂商名称（Excel：源头厂商） */
   name: string;
+  /**
+   * 品类（Excel：品类）。归类**取自数据源**，站点不按商品名反推、不维护映射表——
+   * 数据源里怎么归类就怎么展示。
+   */
+  category: string;
   /** 供应货品（Excel：商品） */
   goods: string;
   /** 价格（Excel：价格） */
   price: string;
-  /** 联系电话（Excel：联系方式） */
+  /** 联系电话（Excel：联系方式）。**已遮挡**：前 3 后 3，中间换成 * —— 见 maskPhone */
   phone: string;
-  /** 邮件地址（Excel：邮件地址） */
+  /** 邮件地址（Excel：邮件地址）。**已遮挡**：@ 前面的本地部分只留前 3 位 —— 见 maskEmail */
   email: string;
   /**
    * 是否验证（Excel：是否验证），原样展示。
@@ -57,6 +65,8 @@ export interface DirectoryColumn {
 
 export const DIRECTORY_COLUMNS: readonly DirectoryColumn[] = [
   { key: 'name', label: '厂商名称' },
+  // 紧挨厂商名称：先看谁供货、再看归到哪个品类，比放到商品后面顺
+  { key: 'category', label: '品类' },
   { key: 'goods', label: '供应货品' },
   { key: 'price', label: '价格', numeric: true },
   { key: 'phone', label: '联系电话' },
@@ -70,6 +80,10 @@ const FIELD_BY_HEADER: Readonly<Record<string, keyof SupplierRow>> = {
   源头厂商: 'name',
   厂商名称: 'name',
   厂商: 'name',
+  品类: 'category',
+  分类: 'category',
+  类别: 'category',
+  类目: 'category',
   商品: 'goods',
   供应货品: 'goods',
   货品: 'goods',
@@ -103,11 +117,20 @@ export interface Directory {
   };
 }
 
-const FIELD_ORDER: (keyof SupplierRow)[] = ['name', 'goods', 'price', 'phone', 'email', 'verified'];
+const FIELD_ORDER: (keyof SupplierRow)[] = [
+  'name',
+  'category',
+  'goods',
+  'price',
+  'phone',
+  'email',
+  'verified',
+];
 
 /** 字段中文名，用于报错信息 */
 const FIELD_LABEL: Record<keyof SupplierRow, string> = {
   name: '厂商名称',
+  category: '品类',
   goods: '供应货品',
   price: '价格',
   phone: '联系电话',
@@ -123,6 +146,48 @@ export function isFilled(v: string): boolean {
 function formatDate(d: Date): string {
   const p = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+/* ─── 联系方式遮挡 ────────────────────────────────────────────────────── */
+
+/**
+ * ⚠️ 遮挡必须发生在这里（数据层），**不能**挪到 DirectoryTable 去。
+ * DirectoryTable 是 'use client' 组件，它拿到的 rows 会被序列化进静态产物 ——
+ * 在组件里遮，原始值照样躺在 out/ 的页面源码里，等于没遮。
+ * 只有在本层遮完再往外传，真值才进不了构建产物。
+ */
+const MASK = '*';
+
+/**
+ * 保留首尾各若干位，中间整段换成 *。
+ * 长度不够（≤ head + tail）时**全部遮掉**：`ab@x.com` 只留前 3 位就等于没留，
+ * 这种短值遮一半比不遮更危险，因为看着像遮过了。
+ */
+function maskBetween(value: string, head: number, tail: number): string {
+  if (value.length <= head + tail) return MASK.repeat(value.length);
+  return (
+    value.slice(0, head) + MASK.repeat(value.length - head - tail) + value.slice(-tail)
+  );
+}
+
+/** 电话：前 3 后 3，中间遮住。13800138000 → 138*****000 */
+export function maskPhone(value: string): string {
+  return maskBetween(value, 3, 3);
+}
+
+/**
+ * 邮箱：只遮 @ 前面的本地部分，**域名整个保留** —— 域名不是敏感信息，
+ * 留着才看得出是哪家邮箱服务，遮了对隐私没有任何帮助。
+ * huadong@example.com → hua****@example.com
+ */
+export function maskEmail(value: string): string {
+  const at = value.indexOf('@');
+  // 不成形的邮箱（没有 @ 或 @ 在开头）退回通用规则，不猜它哪段是域名
+  if (at <= 0) return maskBetween(value, 3, 3);
+  const local = value.slice(0, at);
+  // 本地部分不足 4 位就整段遮掉：只留前 3 位等于把整个本地部分都暴露了
+  const head = local.length > 3 ? 3 : 0;
+  return local.slice(0, head) + MASK.repeat(local.length - head) + value.slice(at);
 }
 
 /** 解析表头行，返回「列号 → 字段」的映射；遇到任何无法对应的情况直接抛错 */
@@ -189,6 +254,13 @@ function deriveStats(rows: SupplierRow[]): DirectoryStat[] {
     stats.push({ label: '厂商', value: String(vendors.size), unit: '家' });
   }
 
+  // 与「厂商」「商品」同源：数的是数据源里**出现过的不同取值**，不替数据源做归类合并。
+  // 数据源把同一批货拆成两个品类名（或反过来），这里如实数成两个（或一个）。
+  const categories = new Set(rows.map(r => r.category.trim()).filter(isFilled));
+  if (categories.size > 0) {
+    stats.push({ label: '品类', value: String(categories.size), unit: '个' });
+  }
+
   const goods = new Set(rows.map(r => r.goods.trim()).filter(isFilled));
   if (goods.size > 0) {
     stats.push({ label: '商品', value: String(goods.size), unit: '类' });
@@ -245,6 +317,9 @@ export function getDirectory(): Directory {
     });
     // 整行为空（Excel 常见的尾部空行）不算数据，跳过；部分为空则如实保留
     if (FIELD_ORDER.every(f => row[f] === '')) continue;
+    // 空值遮完仍是空串，故上面那条空行判定不受影响
+    row.phone = maskPhone(row.phone);
+    row.email = maskEmail(row.email);
     rows.push(row);
   }
 

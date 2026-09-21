@@ -108,16 +108,16 @@
 
 /* 表格随页面正常滚动，表头吸顶到视口顶部（不再用 70vh 把表格关进内部滚动区 ——
    那样 1440×900 下 21 条只露出 12 条，卡片底边像被切了一刀，且没有任何「下面还有」的暗示）。
-   分档依据只有一个：表格会不会横向溢出。.table 的 min-width 是 800px、
-   .section-container 左右各 24px 内边距，故视口 ≥ 848px 才装得下。
+   分档依据只有一个：表格会不会横向溢出。.table 的 min-width 是 880px、
+   .section-container 左右各 24px 内边距，故视口 ≥ 928px 才装得下。
    横向滚动与视口吸顶在 CSS 里不可兼得（overflow-x:auto 同样会建立滚动容器，
    实测表头 top = -299），所以窄屏退化为「横向可滑、表头不吸顶」。 */
-@media (min-width: 848px) {
+@media (min-width: 928px) {
   .scroll {
     overflow: visible;
   }
 }
-@media (max-width: 847px) {
+@media (max-width: 927px) {
   .scroll {
     overflow-x: auto;
   }
@@ -140,8 +140,9 @@
 
 .table {
   width: 100%;
-  min-width: 800px; /* 6 列在手机上放不下，靠 .scroll 横向滚动 + 上面的提示。
-                       800 是最窄列（15% = 120px）仍装得下「是否验证 + 排序箭头」的临界值 */
+  min-width: 880px; /* 7 列在手机上放不下，靠 .scroll 横向滚动 + 上面的提示。
+                       880 是最窄列（「是否验证」15% = 132px）仍装得下「是否验证 + 排序箭头」
+                       的临界值 —— 定标列是它而不是列数，列数再变也按这条重算 */
   /* sticky 表头必须用 separate：collapse 模式下单元格边框会随内容一起滚走 */
   border-collapse: separate;
   border-spacing: 0;
@@ -210,7 +211,7 @@
   vertical-align: middle;
 }
 
-/* 斑马纹。表宽约 1232px、6 列，只有 1px 行分隔线时横向读数容易串行。
+/* 斑马纹。表宽约 1232px、7 列，只有 1px 行分隔线时横向读数容易串行。
    ⚠️ 这条必须写在下面 :hover 之前：两者 specificity 相同（都是 0,2,3），
    靠源码顺序决胜，hover 在前就会被斑马纹盖掉、鼠标移上去没反应。
    底色用 --surface-zebra 而不是 --surface2，原因见 globals.css 的注释（AA 对比度）。 */
@@ -227,12 +228,15 @@
 }
 
 /* 列宽按内容比例分配，不均分（均分会让「价格」这类短列出现大段空白）。
-   百分比之和必须是 100：table-layout 是 fixed，宽度全靠这里。 */
-.col_name { width: 17%; }
-.col_goods { width: 16%; }
-.col_price { width: 11%; }
-.col_phone { width: 19%; }
-.col_email { width: 22%; }
+   百分比之和必须是 100：table-layout 是 fixed，宽度全靠这里。
+   「是否验证」固定占 15% 不动 —— 它的表头最长（4 字 + 排序箭头），
+   是 .table 的 min-width 的定标列，见下方 .table 的注释；动它就要连 min-width 一起重算。 */
+.col_name { width: 15%; }
+.col_category { width: 12%; }
+.col_goods { width: 14%; }
+.col_price { width: 10%; }
+.col_phone { width: 16%; }
+.col_email { width: 18%; }
 .col_verified { width: 15%; }
 
 /* 价格列的数据是右对齐的，表头必须跟着右对齐，否则表头与数字错位 */
@@ -249,13 +253,6 @@
 
 .emailCell {
   overflow-wrap: anywhere;
-}
-
-.link {
-  color: var(--accent);
-}
-.link:hover {
-  text-decoration: underline;
 }
 
 /* 空单元格的占位符。用 --muted2 而不是更浅的灰，保证 4.83:1 过 AA */

@@ -18,7 +18,7 @@ const COLLATOR = new Intl.Collator('zh-CN', { numeric: true, sensitivity: 'base'
 
 // 全字段清单：既用于行 key（第 30 行），也用于关键词搜索（第 60 行）。
 // 必须与 suppliers.ts 的 SupplierRow 字段一一对应，漏一个则该列搜不到。
-const FIELDS: SortKey[] = ['name', 'goods', 'price', 'phone', 'email', 'verified'];
+const FIELDS: SortKey[] = ['name', 'category', 'goods', 'price', 'phone', 'email', 'verified'];
 
 interface Props {
   rows: SupplierRow[];
@@ -28,10 +28,10 @@ interface Props {
 }
 
 /**
- * 表格会横向溢出的视口区间。848 = 表格 min-width 800 + .section-container 左右各 24px，
+ * 表格会横向溢出的视口区间。928 = 表格 min-width 880 + .section-container 左右各 24px，
  * 与 DirectoryTable.module.css 里 .scroll 的分档是同一个数，改一处必须改另一处。
  */
-const H_SCROLL_QUERY = '(max-width: 847px)';
+const H_SCROLL_QUERY = '(max-width: 927px)';
 
 /**
  * 只有确实能横向滚动时才让滚动容器可聚焦（WCAG 2.1.1：键盘用户得够得着溢出的列）。
@@ -253,7 +253,14 @@ export default function DirectoryTable({ rows, columns, title, emptyText }: Prop
   );
 }
 
-/** 单元格渲染：空值统一显示「—」，电话与邮箱可点击 */
+/**
+ * 单元格渲染：空值统一显示「—」。
+ *
+ * 电话与邮箱**不再渲染成链接**。数据层已把它们遮罩（见 suppliers.ts 的 maskPhone / maskEmail），
+ * 而链接是从单元格内容拼出来的：`138*****000` 剔掉非数字得到 `tel:138000`，
+ * `hua****@example.com` 原样进 mailto: —— 两个都是拨不通、发不出的坏链接。
+ * 给纯文本，好过给一个看着能点、点了出错的东西。
+ */
 function Cell({ row, col }: { row: SupplierRow; col: DirectoryColumn }) {
   const value = row[col.key];
 
@@ -262,22 +269,6 @@ function Cell({ row, col }: { row: SupplierRow; col: DirectoryColumn }) {
       <span className={styles.blank} aria-label="无此项">
         —
       </span>
-    );
-  }
-
-  if (col.key === 'phone' && /\d/.test(value)) {
-    return (
-      <a className={styles.link} href={`tel:${value.replace(/[^\d+]/g, '')}`}>
-        {value}
-      </a>
-    );
-  }
-
-  if (col.key === 'email' && value.includes('@')) {
-    return (
-      <a className={styles.link} href={`mailto:${value}`}>
-        {value}
-      </a>
     );
   }
 
