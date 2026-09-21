@@ -6,6 +6,9 @@
 /out/
 /build
 
+# Wrangler 本地状态（deploy / login 生成，不属于项目源码）
+/.wrangler/
+
 # TypeScript 增量构建缓存
 *.tsbuildinfo
 next-env.d.ts

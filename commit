@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+#
+# 提交并推送：./commit ["提交信息"]
+#
+# 与仓库根的 commit.sh 同风格 —— 暂存 → 前置校验 → 通过则 commit + push。
+#
+# 校验那一步值得留着：本站是构建期把 Excel 烘成静态 HTML 的，Excel 结构不对或代码
+# 有错，本地跑 dev 未必看得出来，要等 Cloudflare 构建时才失败；而那时候的现象是
+# 「push 了但站点没更新」，比本地直接报错难查得多。这里用的构建命令与 Cloudflare
+# 构建机执行的完全一致，本地过了线上基本就过。
+#
+# 用法：
+#   ./commit                        用默认信息提交全部变更并推送
+#   ./commit "更新名录数据"          指定提交信息
+#   COMMIT_SKIP_CHECK=1 ./commit    跳过构建校验（只改文档想快一点时用）
+#
+# 与 sh/start-zhanshi.sh 一样，行为用环境变量覆盖，不改脚本本身。
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+MSG="${1:-update}"
+BRANCH="$(git branch --show-current)"
+
+if [[ -z "$BRANCH" ]]; then
+  echo "错误：当前处于 detached HEAD，无法确定要推送到哪个分支。"
+  exit 1
+fi
+
+# 已提交但未推送的提交数。用于「没有新变更、但上次的提交还没推上去」这种情况 ——
+# 否则脚本会静默什么都不做，让人以为推过了。
+AHEAD=0
+if git rev-parse --verify -q '@{u}' >/dev/null 2>&1; then
+  AHEAD="$(git rev-list --count '@{u}..HEAD')"
+fi
+
+echo ">>> 暂存所有变更..."
+git add -A
+
+if git diff --staged --quiet; then
+  echo ">>> 没有需要提交的变更。"
+  if [[ "$AHEAD" -eq 0 ]]; then
+    echo ">>> 也没有待推送的提交，无事可做。"
+    exit 0
+  fi
+  echo ">>> 但有 ${AHEAD} 个提交尚未推送，直接进入推送。"
+else
+  echo ">>> 本次将提交："
+  git diff --staged --name-status | sed 's/^/    /'
+  echo ""
+
+  if [[ "${COMMIT_SKIP_CHECK:-}" == "1" ]]; then
+    echo ">>> COMMIT_SKIP_CHECK=1，跳过构建校验。"
+  else
+    echo ">>> [校验] 生产构建（与 Cloudflare 构建机同一条命令；"
+    echo "           构建会解析 Excel，数据文件结构不符会在此直接报错）..."
+    npm run build
+  fi
+
+  echo ""
+  echo ">>> 提交..."
+  git commit -m "$MSG"
+fi
+
+echo ""
+echo ">>> 推送到 origin/${BRANCH}..."
+git push -u origin "$BRANCH"
+
+echo ""
+echo "✓ 已推送，Cloudflare 会自动构建上线（约 1~2 分钟）："
+echo "  https://zhanshi.liangpengzhan.workers.dev"
