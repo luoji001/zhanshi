@@ -37,8 +37,15 @@ interface DataPoint {
 
 const DATASET = 'zhanshi_pageviews';
 
-/** 算作「一次页面浏览」的路径。与 wrangler.jsonc 的 run_worker_first 保持一致 */
-const PAGE_PATHS = new Set(['/', '/data', '/data/']);
+/**
+ * 算作「一次页面浏览」的路径。
+ *
+ * ⚠️ **故意不含带尾斜杠的 `/data/`**：那个地址会被静态资源层 307 跳到 `/data`
+ * （实测 `location: /data`）。若把它也算作页面浏览，一次访问会记两条 ——
+ * `/data/` 一条、跳转后的 `/data` 又一条，**PV 直接翻倍**。
+ * 原则：只记最终地址，跳转中的地址一律不算。加路径前先确认它不会跳转。
+ */
+const PAGE_PATHS = new Set(['/', '/data']);
 
 /**
  * 粗筛爬虫 / 监控 / 预览抓取。不求全 —— 真要精确就该上 Cloudflare 的 Bot Management，

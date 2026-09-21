@@ -74,7 +74,7 @@ npx wrangler secret put CF_API_TOKEN  # 只需 Analytics Engine 读权限
 ## 目录结构
 
 ```
-src/app/          两个页面的路由（/ 与 /data）
+src/app/          两个页面的路由（/ 与 /data），外加自定义 404 页
 src/components/   页面区块组件（概览、名录表格、数据说明）
 src/lib/          数据层：xlsx 解析器、名录数据、静态文案
 src/excel/        数据源，唯一的 Excel
