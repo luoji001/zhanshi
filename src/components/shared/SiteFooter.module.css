@@ -1,0 +1,107 @@
+/* 配色一律走 globals.css 的令牌，不要硬编码颜色。 */
+.footer {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+
+/* 与顶栏、.section-container 同一套对齐：max-width 1280px + 左右 24px 内边距 */
+.inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 30px 24px 26px;
+}
+
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px 40px;
+}
+
+.brandCol {
+  min-width: 0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: .98rem;
+  font-weight: 700;
+}
+.mark {
+  flex-shrink: 0;
+}
+.mark rect {
+  fill: var(--accent);
+}
+.mark path {
+  fill: var(--on-accent);
+}
+
+/* 行高放到 1.65：这段是页脚里唯一的整句说明文字，1.6 的全局值在 .86rem 下偏挤 */
+.tagline {
+  max-width: 46ch;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: .86rem;
+  line-height: 1.65;
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 4px;
+}
+
+/* --muted 对 --surface 是 5.75:1，过 AA */
+.link {
+  padding: 6px 11px;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  font-size: .86rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: color var(--transition), background var(--transition);
+}
+.link:hover {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* 底栏。左边是数据现状、右边是遮罩声明，两者都是「读一遍就够」的信息，
+   故压在 .8rem + --muted2（对 --surface 4.83:1，过 AA）。
+   ⚠️ 别用更浅的灰：--muted2 是 globals.css 里为「浅色下仍要过 AA」定的下限。 */
+.bottom {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px 32px;
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.meta {
+  color: var(--muted2);
+  font-size: .8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 767px) {
+  .inner {
+    padding: 24px 16px 22px;
+  }
+  /* 窄屏下右栏（三条链接）不再与品牌文字挤在一行，整块换行到下面 */
+  .top {
+    gap: 14px 24px;
+  }
+  .links {
+    margin-left: -11px; /* 抵掉首个胶囊的左内边距，让链接文字与品牌文字左对齐 */
+  }
+}

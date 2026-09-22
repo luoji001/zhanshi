@@ -1,32 +1,36 @@
 /* 名录区块底色：全站唯一带蓝调的分区，用来把「主角区块」从素色页面里托出来。
-   ⚠️ **这里没有 border-top，是故意的**：这条带子从页面顶端就开始了 ——
-   上面 app/data/page.module.css 的 .backBar 用的是同一个 --band-feature，
-   两者接成一条连续的带。加回 border-top 会有一条贯穿全宽的线，
-   把「返回概览」和「名录数据」切成互不相干的两块，而它们本是一个头部块。 */
+   ⚠️ **这里没有 border-top，是故意的**：它是 /data 首屏那条蓝色带的起头，
+   顶上紧挨着的是白色顶栏（SiteHeader），加一条 border-top 只会在顶栏与色带之间
+   多出一道多余的线。这条带子原先从页面顶端就开始（由 app/data/page.module.css 的
+   .backBar 起头 + 返回胶囊），那颗胶囊 2026-09-22 已删，带子改从这里开始。 */
 .section {
   background: var(--band-feature);
   border-bottom: 1px solid var(--border);
 }
 
-/* .section-container 自带 40px 上下内边距，区块已有底色分隔，收紧一点。
-   上内边距只留 22px：上方紧邻返回胶囊（.backBar 自己还有 22px），
-   两段相加才是「胶囊 → 标题」的真实间距，不要再按 36px 的老值去调。 */
+/* .section-container 自带 40px 上下内边距，区块已有底色分隔，底部收紧一点。
+   顶部**保持 40px**：上方现在直接是顶栏，不再是那颗自带 22px 外边距的返回胶囊，
+   再按旧的 22px 写会让标题贴着顶栏下沿。 */
 .section :global(.section-container) {
-  padding-top: 22px;
+  padding-top: 40px;
   padding-bottom: 36px;
 }
 
 /* 横向滑动提示：只在表格确实会溢出的宽度区间出现。
-   .table 的 min-width 是 800px（见 DirectoryTable.module.css），.section-container 左右各 24px
-   内边距，故视口 ≥ 848px 才装得下、窄于 848px 才开始横向滚动 ——
-   提示区间与真正的滚动区间对齐，不会「提示了却不用滑」。
-   ⚠️ 这个 847 与 DirectoryTable.module.css 里 .scroll 的分档（以及 DirectoryTable.tsx 的
-   H_SCROLL_QUERY）是同一个数，三处必须一起改。
-   （本注释原先写的是 720px / 752px，那是表格还只有 720px 时的旧值，早已过期。） */
+   .table 的 min-width 是 1000px（见 DirectoryTable.module.css），.section-container 左右各 24px
+   内边距，故视口 ≥ 1048px 才装得下、768–1047px 才开始横向滚动 ——
+   提示区间与真正的滚动区间对齐，不会「提示了却不用滑」，也不会该提示时不提示。
+   ⚠️ 这个区间与 DirectoryTable.module.css 里 .scroll 的分档、以及 DirectoryTable.tsx 的
+   H_SCROLL_QUERY 是同一个，三处必须一起改。
+   （本处曾是 847，即按 min-width 800 算的旧值：表格加宽到 1000 后没跟着改，
+   结果是 848–1047px 这一段会横滑、提示却不出现，2026-09-22 修。
+   同日下界又从「无」收到 768：≤767px 已改成卡片布局，那一档不横滑，不该再提示。）
+   本类用 display:none 隐藏而不是不渲染：它要能被 CSS 按视口宽度开关，
+   而视口宽度在构建期拿不到，只能交给媒体查询。 */
 .hint {
   display: none;
 }
-@media (max-width: 847px) {
+@media (min-width: 768px) and (max-width: 1047px) {
   .hint {
     display: block;
     margin-bottom: 10px;

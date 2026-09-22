@@ -1,4 +1,7 @@
 import type { Metadata } from 'next';
+import { site } from '@/lib/content';
+import SiteHeader from '@/components/shared/SiteHeader';
+import SiteFooter from '@/components/shared/SiteFooter';
 import '@/styles/globals.css';
 
 /**
@@ -18,9 +21,10 @@ export const metadata: Metadata = {
   // 模板只作用于子页面：/data 的「名录数据与数据说明」会渲染成
   //「名录数据与数据说明 · 源头厂商名录」。不配的话搜索结果里两条结果
   // 看起来像两个不相干的站（首页显示站名，内页却没有）。
+  // 站名三个地方（含 openGraph.siteName）都取 site.name，不再各写一遍字面量。
   title: {
-    default: '源头厂商名录',
-    template: '%s · 源头厂商名录',
+    default: site.name,
+    template: `%s · ${site.name}`,
   },
   description: DESCRIPTION,
 
@@ -31,7 +35,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'zh_CN',
-    siteName: '源头厂商名录',
+    siteName: site.name,
     // 刻意不写 title / description：留空时 Next 会用页面自己的 title 与 description，
     // 于是 /data 分享出去显示的是那一页的摘要而不是首页的。
   },
@@ -51,8 +55,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
+      {/*
+        顶栏 / 页脚挂在根 layout 上，两页与 404 共用 —— 站点外壳只写一遍，
+        不然每加一页就要记得补一次（404 页尤其容易漏）。
+        body 用 flex 纵向排布 + main flex:1：/404 这种内容很短的页面，
+        页脚会被顶到视口底部而不是浮在半空（见 globals.css 里 body 的规则）。
+      */}
       <body>
+        <SiteHeader />
         <main>{children}</main>
+        <SiteFooter />
       </body>
     </html>
   );

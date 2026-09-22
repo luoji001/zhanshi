@@ -17,6 +17,8 @@ import { join } from 'node:path';
 // 带扩展名 import：Node 的 ESM 解析器不做扩展名补全，scripts/check-data.mjs 要能
 // 直接 import 本文件就必须写全（需 tsconfig 的 allowImportingTsExtensions，已开）。
 import { readXlsxSheet } from './xlsx.ts';
+// format.ts 是客户端可用的（不引 node:fs），这里引它不会把服务端东西带出去
+import { formatPrice } from './format.ts';
 
 /** 数据源。相对仓库内本项目根目录；换数据就是换这一个文件 */
 export const EXCEL_PATH = 'src/excel/源头厂商.xlsx';
@@ -104,11 +106,20 @@ export interface DirectoryStat {
   unit: string;
 }
 
+/** 品类分布里的一项 */
+export interface CategoryCount {
+  name: string;
+  /** 该品类下的记录条数 */
+  count: number;
+}
+
 export interface Directory {
   rows: SupplierRow[];
   columns: readonly DirectoryColumn[];
   /** 由 rows 推导，算不出来的指标不会出现——**绝不编造数字** */
   stats: DirectoryStat[];
+  /** 品类分布，供首页那条品类索引带使用。同样只由 rows 推导 */
+  categoryCounts: CategoryCount[];
   source: {
     /** 展示用的相对路径 */
     file: string;
@@ -159,6 +170,13 @@ function formatDate(d: Date): string {
 const MASK = '*';
 
 /**
+ * 邮箱本地部分遮罩段的**固定**长度。
+ * 刻意不跟原字符数走：几个星号就等于告诉人「这个邮箱名有几位」——
+ * 星号数随原值变化，遮了内容却漏了长度，而且列宽会参差不齐。
+ */
+const MASK_WIDTH = 4;
+
+/**
  * 保留首尾各若干位，中间整段换成 *。
  * 长度不够（≤ head + tail）时**全部遮掉**：`ab@x.com` 只留前 3 位就等于没留，
  * 这种短值遮一半比不遮更危险，因为看着像遮过了。
@@ -179,6 +197,7 @@ export function maskPhone(value: string): string {
  * 邮箱：只遮 @ 前面的本地部分，**域名整个保留** —— 域名不是敏感信息，
  * 留着才看得出是哪家邮箱服务，遮了对隐私没有任何帮助。
  * huadong@example.com → hua****@example.com
+ * qilu@163.com → qil****@163.com（同样是 4 个星号，与 huadong 那条一样长）
  */
 export function maskEmail(value: string): string {
   const at = value.indexOf('@');
@@ -187,7 +206,7 @@ export function maskEmail(value: string): string {
   const local = value.slice(0, at);
   // 本地部分不足 4 位就整段遮掉：只留前 3 位等于把整个本地部分都暴露了
   const head = local.length > 3 ? 3 : 0;
-  return local.slice(0, head) + MASK.repeat(local.length - head) + value.slice(at);
+  return local.slice(0, head) + MASK.repeat(MASK_WIDTH) + value.slice(at);
 }
 
 /** 解析表头行，返回「列号 → 字段」的映射；遇到任何无法对应的情况直接抛错 */
@@ -268,11 +287,10 @@ function deriveStats(rows: SupplierRow[]): DirectoryStat[] {
 
   const range = priceRange(rows);
   if (range) {
-    stats.push({
-      label: '价格区间',
-      value: range.min === range.max ? String(range.min) : `${range.min} ~ ${range.max}`,
-      unit: '',
-    });
+    // 走与价格单元格同一个 formatPrice，否则「区间」与单元格会是两种写法
+    const lo = formatPrice(String(range.min));
+    const hi = formatPrice(String(range.max));
+    stats.push({ label: '价格区间', value: lo === hi ? lo : `${lo} ~ ${hi}`, unit: '' });
   }
 
   const withContact = rows.filter(r => isFilled(r.phone) || isFilled(r.email)).length;
@@ -281,6 +299,26 @@ function deriveStats(rows: SupplierRow[]): DirectoryStat[] {
   }
 
   return stats;
+}
+
+/**
+ * 品类分布：每种品类各有多少条记录。给首页那条品类索引带（Overview）用。
+ *
+ * 与 deriveStats 里那个「品类 N 个」同源：同样只数数据源里**出现过的写法**，
+ * 不合并同义写法、不替数据源归类（口径见 SupplierRow.category）。
+ * 按记录数降序、同数按中文顺序 —— 这只是个展示顺序，不改变任何事实；
+ * 数据源里怎么写，这里就怎么叫。
+ */
+function categoryBreakdown(rows: SupplierRow[]): CategoryCount[] {
+  const counts = new Map<string, number>();
+  for (const row of rows) {
+    const name = row.category.trim();
+    if (name === '') continue;
+    counts.set(name, (counts.get(name) ?? 0) + 1);
+  }
+  return [...counts]
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'zh-CN'));
 }
 
 /**
@@ -334,6 +372,7 @@ export function getDirectory(): Directory {
     rows,
     columns: DIRECTORY_COLUMNS,
     stats: deriveStats(rows),
+    categoryCounts: categoryBreakdown(rows),
     source: { file: EXCEL_PATH, updatedAt },
   };
 }

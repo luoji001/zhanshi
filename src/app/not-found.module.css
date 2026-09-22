@@ -3,8 +3,10 @@
 
 .wrap {
   /* 404 是一个终态，不是内容页，所以整屏居中而不是左对齐。
-     用 svh 而不是 vh：移动端地址栏收起/展开时 vh 会跳。 */
-  min-height: 100svh;
+     ⚠️ 撑满靠的是 flex:1（main 是纵向 flex 容器，见 globals.css），
+     **不要**改成 min-height:100svh：顶栏与页脚现在也算在 100svh 里，
+     那样写会把页脚整个顶出首屏。 */
+  flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -79,7 +81,7 @@
   color: var(--accent);
 }
 
-/* 焦点环不能省：全站没有导航栏，键盘用户只能靠这两个链接离开这一页 */
+/* 焦点环不能省：这一页上顶栏虽也可用，但就近的两个链接是键盘用户最直接的出口 */
 .btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;

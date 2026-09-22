@@ -51,7 +51,13 @@
   border-color: var(--accent);
 }
 
+/* ⚠️ flex-shrink:0 + nowrap 两条都不能少：这是「厂商」「品类」两个字的标签，
+   窄屏下与下拉挤同一行时，没有这两条就会被压成宽度接近 0 的格子，
+   中文于是逐字竖排成「厂\n商」——2026-09-22 加了第二个下拉后实测到。
+   标签本来就不该在词中间断开。 */
 .filterLabel {
+  flex-shrink: 0;
+  white-space: nowrap;
   color: var(--muted);
   font-size: .86rem;
   font-weight: 600;
@@ -72,19 +78,95 @@
   outline-offset: 1px;
 }
 
-.clear {
-  padding: 8px 14px;
-  border: 1px solid var(--border2);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--accent);
-  font-size: .86rem;
-  font-weight: 600;
-  transition: border-color var(--transition), background var(--transition);
+/* 两个下拉并排时宽度差太多会看着像随手摆的：厂商那栏最长选项是
+   「宁波家居用品供应链」，一路撑到 max-width 的 200px；品类最长只有 5 个字（约 110px）。
+   给一个共同下限把两者拉到接近的宽度，上限仍由 .select 的 max-width 兜着。
+   ⚠️ 下限只在这一档给：窄屏（见文件末尾的媒体查询）两个下拉要并排平分一行，
+   150px 的下限会把它们顶出容器。 */
+@media (min-width: 768px) {
+  .select {
+    min-width: 150px;
+  }
 }
-.clear:hover {
-  border-color: var(--accent);
+
+/* ─── 生效中的筛选条 ─────────────────────────────────────────────────── */
+/* 这一条压在 --band-feature(#eef2fa) 这条浅蓝带上。白色胶囊对它的对比只有 1.12:1，
+   边框 --border2 也只有 1.42:1 —— **光靠边框几乎看不出形状**，让它浮起来的是那道
+   极轻的投影（与旧版「返回概览」胶囊同一个处境，别把 box-shadow 删了）。 */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  padding: 3px 4px 3px 11px;
+  border: 1px solid var(--border2);
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  font-size: .82rem;
+  line-height: 1.5;
+}
+
+/* --muted 对 --surface 5.75:1、--text 16.06:1，都过 AA */
+.chipLabel {
+  color: var(--muted);
+  white-space: nowrap;
+}
+.chipValue {
+  min-width: 0;
+  color: var(--text);
+  font-weight: 600;
+  /* 超长的厂商名不许把胶囊撑破行：截断加省略号，完整值仍能从下拉里看到 */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 移除按钮做成 20×20 的圆。WCAG 2.5.8 要求目标至少 24×24，
+   这里靠 .chip 自身的 3px 内边距把**可点区域**补到 26×26（按钮盒 + 相邻内边距），
+   不要为了好看把 padding 收到 1px。 */
+.chipX {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--muted);
+  font-size: .95rem;
+  line-height: 1;
+  transition: color var(--transition), background var(--transition);
+}
+.chipX:hover {
+  color: var(--accent);
   background: var(--accent-soft);
+}
+.chipX:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* 「全部清除」是纯文字按钮（它比胶囊低一级：胶囊逐条撤，这个是兜底全撤）。
+   --accent 对 --band-feature 是 7.2:1，过 AA。 */
+.clearAll {
+  padding: 4px 8px;
+  color: var(--accent);
+  font-size: .82rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.clearAll:hover {
+  color: var(--text);
 }
 
 /* 条数收进工具条末尾靠右，桌面端整条工具条由两行变一行（手机端见下面媒体查询） */
@@ -108,16 +190,19 @@
 
 /* 表格随页面正常滚动，表头吸顶到视口顶部（不再用 70vh 把表格关进内部滚动区 ——
    那样 1440×900 下 21 条只露出 12 条，卡片底边像被切了一刀，且没有任何「下面还有」的暗示）。
-   分档依据只有一个：表格会不会横向溢出。.table 的 min-width 是 880px、
-   .section-container 左右各 24px 内边距，故视口 ≥ 928px 才装得下。
+   分档依据只有一个：表格会不会横向溢出。.table 的 min-width 是 1000px、
+   .section-container 左右各 24px 内边距，故视口 ≥ 1048px 才装得下。
    横向滚动与视口吸顶在 CSS 里不可兼得（overflow-x:auto 同样会建立滚动容器，
    实测表头 top = -299），所以窄屏退化为「横向可滑、表头不吸顶」。 */
-@media (min-width: 928px) {
+@media (min-width: 1048px) {
   .scroll {
     overflow: visible;
   }
 }
-@media (max-width: 927px) {
+/* 横向滚动只在「表格确实会溢出」的那一档需要。⚠️ 下界 768 是 2026-09-22 加的：
+   ≤767px 已改成卡片布局（见文件末尾），根本不横滑 —— 区间从「≤1047」收窄成
+   「768–1047」。写回 max-width: 1047px 会在手机端多出一条没有内容可滑的滚动条。 */
+@media (min-width: 768px) and (max-width: 1047px) {
   .scroll {
     overflow-x: auto;
   }
@@ -140,9 +225,10 @@
 
 .table {
   width: 100%;
-  min-width: 880px; /* 7 列在手机上放不下，靠 .scroll 横向滚动 + 上面的提示。
-                       880 是最窄列（「是否验证」15% = 132px）仍装得下「是否验证 + 排序箭头」
-                       的临界值 —— 定标列是它而不是列数，列数再变也按这条重算 */
+  min-width: 1000px; /* 7 列在手机上放不下，靠 .scroll 横向滚动 + 上面的提示。
+                        1000 是「邮件地址」列（24% = 240px）刚好放得下「邮箱 + 邮件联系按钮」
+                        一行不折行的临界值 —— 定标列是它而不是列数，列数或按钮再变都按这条重算。
+                        曾定在 880（当时定标列是「是否验证」15%），加按钮后不够了 */
   /* sticky 表头必须用 separate：collapse 模式下单元格边框会随内容一起滚走 */
   border-collapse: separate;
   border-spacing: 0;
@@ -229,15 +315,31 @@
 
 /* 列宽按内容比例分配，不均分（均分会让「价格」这类短列出现大段空白）。
    百分比之和必须是 100：table-layout 是 fixed，宽度全靠这里。
-   「是否验证」固定占 15% 不动 —— 它的表头最长（4 字 + 排序箭头），
-   是 .table 的 min-width 的定标列，见下方 .table 的注释；动它就要连 min-width 一起重算。 */
+   定标列是「邮件地址」（28%，见该列注释）—— 它的内容最宽（邮箱 + 按钮），
+   决定了 .table 的 min-width。其余各列只要不低于「表头 4 字 + 排序箭头」所需的
+   约 114px（即 11.4% @ min-width 1000px）就不会挤坏表头。
+   ⚠️ 2026-09-22 重分过一次（14/9/11/11/13/28/14 → 15/10/12/11/13/28/11）：
+   原比例给「是否验证」留了 14%，而它最长只有一个字；厂商名、品类、供应货品
+   反倒偏窄 —— 实测 1200px（很常见的笔记本宽度）下「南阳艾草制品供应链」
+   「厨房小家电」「风味豆豉辣椒酱」都会折成两行。**总和仍是 100，邮件地址
+   仍是 28%（定标列，别动），min-width 也没改，所以不牵动那几处断点同步。** */
 .col_name { width: 15%; }
-.col_category { width: 12%; }
-.col_goods { width: 14%; }
-.col_price { width: 10%; }
-.col_phone { width: 16%; }
-.col_email { width: 18%; }
-.col_verified { width: 15%; }
+.col_category { width: 10%; }
+.col_goods { width: 12%; }
+.col_price { width: 11%; }
+.col_phone { width: 13%; }
+/* 28% 是**这一列的定标值**，也是 .table 的 min-width 的由来：邮箱 + 「邮件联系」按钮
+   必须一行放得下。最长的一档是 `hua****@foxmail.com`（3 位本地部分 + 4 个星号 +
+   最长的域名），**实测** 156px；按钮连 margin 约 65px；合计 221px。
+   221 + 单元格左右各 18px 内边距 = 257px，257 / 1000 = 25.7% —— 这里给到 28%（244px 内容区）
+   留 23px 余量，因为字体回退或换域名都会让实测值浮动。
+   ⚠️ 别把这一列调回 24%：那时最长邮箱会折行，行高翻倍（2026-09-21 实际踩过）。
+   ⚠️ 邮箱遮罩长度改回「几个字符几个星号」也会让列宽随数据波动，别那么改。 */
+.col_email { width: 28%; }
+/* 「是否验证」的取值最长一个字（是/否），11%（min-width 下 110px）已远高于
+   表头「4 字 + 排序箭头」所需的约 104px —— 这一列是上面那次重分的**供体**，
+   别再凭「表头挺长」的直觉把它调回去。 */
+.col_verified { width: 11%; }
 
 /* 价格列的数据是右对齐的，表头必须跟着右对齐，否则表头与数字错位 */
 .numericHead .sortBtn {
@@ -253,6 +355,37 @@
 
 .emailCell {
   overflow-wrap: anywhere;
+}
+
+/* 「邮件联系」按钮。邮箱本身是**遮罩过的**（suppliers.ts 的 maskEmail），
+   拿它拼 mailto: 会寄给一个不存在的地址，所以按钮走空收件人，只唤起邮件客户端，
+   收件人由用户自己填 —— 这一点写在 Cell 的 aria-label 里。
+   描边而非实底：它是行内的次要动作，不该抢过表格内容。 */
+.mailBtn {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  font-size: .78rem;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.mailBtn:hover {
+  background: var(--surface2);
+}
+
+/* 搜索命中高亮。
+   ⚠️ 底色必须显式覆盖：<mark> 自带 UA 的黄底，那个黄与全站配色无关，
+   而且不跟随这里的令牌。用 --accent-mark（浓度见 globals.css 的注释）。
+   color 写 inherit 是为了让高亮不改变文字本来的颜色 —— 价格列、空值列
+   各有自己的色，高亮只该加底、不该改字色。 */
+.mark {
+  padding: 1px 2px;
+  border-radius: 3px;
+  background: var(--accent-mark);
+  color: inherit;
 }
 
 /* 空单元格的占位符。用 --muted2 而不是更浅的灰，保证 4.83:1 过 AA */
@@ -280,17 +413,151 @@
   .field {
     width: 100%;
   }
-  /* 厂商那一栏不占满整行，右侧让给「共 N 条」，工具条由三行压到两行。
-     必须写在 .field 之后：同 specificity 时靠源码顺序覆盖 width。 */
-  .fieldVendor {
+  /* 两个下拉都不占满整行：搜索框独占一行，两个下拉并排一行，右侧让给「共 N 条」，
+     工具条由四行压到两行。必须写在 .field 之后：同 specificity 时靠源码顺序覆盖 width。
+     flex-basis 用 0 而不是 auto —— 两个下拉的选项名长短不一（「全部」vs「川渝调味品集采」），
+     用 auto 时它们会按各自内容宽度分配、两条并排时宽度参差；basis 0 让它们等宽平分。 */
+  .fieldInline {
     width: auto;
-    flex: 1 1 auto;
+    flex: 1 1 0;
     min-width: 0;
   }
   .select {
     max-width: none;
     flex: 1;
   }
-  .sortBtn { padding: 11px 12px; }
-  .table td { padding: 12px 12px; }
+}
+
+/* ─── ≤767px：表格 → 卡片 ───────────────────────────────────────────────
+   改它的原因：7 列在 390px 屏上只能横向滑，而滑到「联系电话」「邮件地址」时
+   已经看不到这一行是哪家厂商了 —— 只能靠左右来回对齐，很容易串行。
+   分享出去的链接多半是在手机上打开的，这是这一页最主要的使用场景之一，
+   不能让它停在一个「能看但难用」的退化状态。
+
+   做法是**只改 CSS、不动 DOM**：table/tbody/tr/td 全改成 block/grid，
+   表头收成一条可换行的排序条（排序能力必须保住 —— 否则手机端就没法排序了），
+   每个字段的名字靠 data-label + ::before 补回来（表头已经不在了）。
+   **字段一个不少**：AGENTS.md 要求数据全部展示，卡片里 7 个字段都在。
+
+   ⚠️ 这一档生效时，上面那套断点（.table 的 min-width 1000、.scroll 的 1048/1047、
+   Directory.module.css 的 .hint、DirectoryTable.tsx 的 H_SCROLL_QUERY）全部不适用 ——
+   改那几个数时记得把这一档也过一遍。 */
+@media (max-width: 767px) {
+  /* 卡片布局下这些表格机制都没有意义：min-width 会撑出横向滚动，
+     table-layout:fixed 与 colgroup 的列宽不再参与布局，吸顶表头也不存在 */
+  .table {
+    display: block;
+    min-width: 0;
+  }
+  .table colgroup {
+    display: none;
+  }
+  .table thead,
+  .table tbody,
+  .table tr {
+    display: block;
+  }
+
+  /* 表头 → 排序条。flex-wrap 而不是横向滚动：7 个按钮在 390px 下换两行就放得下，
+     再套一层横向滚动只会多一个「滑了才知道还有」的坑。 */
+  .table thead tr {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  .table th {
+    /* 桌面端的 sticky + 灰底 + 投影是「压住数据行」用的，这里表头已经不是一行表头了 */
+    position: static;
+    padding: 0;
+    border-bottom: none;
+    background: none;
+    box-shadow: none;
+  }
+  /* padding 6px 11px → 胶囊高约 30px，满足 WCAG 2.5.8 的 24px 最小目标尺寸
+     并给手指留出余量。别再压回 4px：这是手机端唯一的排序入口。 */
+  .sortBtn {
+    gap: 4px;
+    padding: 6px 11px;
+    border: 1px solid var(--border2);
+    border-radius: 999px;
+    background: var(--surface);
+    font-size: .8rem;
+    transition: border-color var(--transition), color var(--transition),
+      background var(--transition);
+  }
+  /* 排序状态落在 th 的 aria-sort 上（见 DirectoryTable.tsx），视觉跟着它走。
+     整颗胶囊换色比只换箭头更醒目 —— 手指点完一眼看得出按哪一列排的。
+     --accent 对 --accent-soft 压在 --surface 上实测 7.5:1，过 AA。 */
+  .table th[aria-sort='ascending'] .sortBtn,
+  .table th[aria-sort='descending'] .sortBtn {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  /* 每一行 → 一张卡片。字段竖排、一行一个：曾试过两栏并排，
+     实测 390px 下「138*****000」和「风味豆豉辣椒酱」会顶到折行，
+     而折行比多滚两屏难看得多。 */
+  .table tbody tr {
+    margin-bottom: 12px;
+    padding: 13px 14px 11px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+  }
+  /* 斑马纹与 hover 在卡片上没有意义 —— 卡片本身已有边框和间距把它们分开；
+     触摸屏上 :hover 还会在点完之后一直黏着。 */
+  .table tbody tr:nth-child(even) td,
+  .table tbody tr:hover td {
+    background: transparent;
+  }
+
+  .table td {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 0;
+    border-bottom: none;
+    font-size: .9rem;
+    line-height: 1.5;
+  }
+  /* 字段名。表头已经收成排序条，名字只能由单元格自己带（data-label 见 tsx） */
+  .table td::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    width: 3.6rem;
+    color: var(--muted);
+    font-size: .8rem;
+    white-space: nowrap;
+  }
+  /* 厂商名称是这张卡片的标题：不加标签（它已经是最上面一行），字重提上去 */
+  .table td[data-col='name'] {
+    margin-bottom: 3px;
+    font-size: .96rem;
+    font-weight: 700;
+  }
+  .table td[data-col='name']::before {
+    content: none;
+  }
+  /* 价格在桌面端右对齐是为了纵向比价；卡片里一行一个字段，左对齐才和别的字段成列 */
+  .numericCell {
+    text-align: left;
+  }
+
+  /* 空结果那一行是单个 td[colspan]，不是字段 —— 别给它套卡片和字段名。
+     :has() 不支持时它只会退化成一个普通卡片，不影响可读性。 */
+  .table tbody tr:has(td[colspan]) {
+    padding: 0;
+    border: none;
+    background: none;
+  }
+  .table td[colspan] {
+    display: block;
+    padding: 30px 12px;
+    text-align: center;
+  }
+  .table td[colspan]::before {
+    content: none;
+  }
 }

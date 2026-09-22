@@ -2,6 +2,16 @@
 .overview {
   position: relative;
   overflow: hidden;
+  /* 首屏铺满：顶栏 + 本区块 ≈ 一屏，内容整块垂直居中。
+     ⚠️ 不加这条时，1440×900 下首页只有约 515px 内容，下面近 400px 是空的 ——
+     看着像一张组件 demo 而不是一个站。首页只有这一块内容，铺满即它的正常形态。
+     取 100svh 而不是 100vh：移动端地址栏收放时 vh 不跟着变，首屏会差一截。
+     align-content 而不是 place-items：前者只垂直居中，水平方向仍交给 .inner 自己的
+     max-width + margin auto（换成 justify-items 会把 .inner 压成内容宽度）。 */
+  min-height: calc(100vh - var(--header-h));
+  min-height: calc(100svh - var(--header-h));
+  display: grid;
+  align-content: center;
   background:
     radial-gradient(900px 420px at 82% -10%, var(--accent-soft), transparent 70%),
     linear-gradient(180deg, var(--surface), var(--bg));
@@ -19,7 +29,10 @@
   display: grid;
   grid-template-columns: auto auto;
   justify-content: center;
-  gap: clamp(40px, 6vw, 88px);
+  /* 列间距是两栏之间的距离；行间距单列一个明显更小的值 —— 品类索引带另起一行，
+     用 88px 会把「同属概览」读成「又一块内容」。 */
+  column-gap: clamp(40px, 6vw, 88px);
+  row-gap: 30px;
   align-items: center;
 }
 
@@ -42,6 +55,9 @@
   margin-top: 16px;
   color: var(--muted);
   font-size: 1.02rem;
+  /* 末行只落一个「挡。」这样的孤字很难看。pretty 让浏览器在断行时避免孤字，
+     代价只是多算一次换行；不支持的浏览器忽略这条，退化成原样，没有副作用。 */
+  text-wrap: pretty;
 }
 
 .actions {
@@ -143,6 +159,68 @@
 }
 /* .scaleLink（卡片底部的「查看全部数据 →」）已删 —— 它与左侧主按钮同指 /data。
    样式一并移除，避免留下无人引用的类。 */
+
+/* ─── 品类索引带 ─────────────────────────────────────────────────────── */
+/* 跨满两栏，落在标题/按钮与概览卡的下方。加它之前这一屏只有六个死数字和两个
+   都指向 /data 的按钮，「我关心哪一类」无处可点。 */
+.categories {
+  grid-column: 1 / -1;
+  /* 一条极轻的分隔线，不用背景块：hero 本身已是白→灰的渐变底，再叠一层色块会脏 */
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.categoriesTitle {
+  color: var(--muted);
+  font-size: .8rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+}
+
+.categoryList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* ⚠️ 投影不能删：这条带子落在 hero 底部的浅灰上（--bg #f5f6f8），
+   白色胶囊对它的对比只有 1.12:1、边框 --border2 也只有 1.5:1 ——
+   光靠底色和边框几乎看不出形状，让它「浮」起来的是那道极轻的投影。
+   （与旧版「返回概览」胶囊同一个处境。）文字本身 --text 对白是 16:1，过 AA。 */
+.category {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border: 1px solid var(--border2);
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  color: var(--text);
+  font-size: .84rem;
+  transition: border-color var(--transition), color var(--transition),
+    background var(--transition);
+}
+.category:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.category:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* 条数用 --muted2（对白 4.83:1，过 AA）压成次要信息 —— 它是补充，不是标签的名字 */
+.categoryCount {
+  color: var(--muted2);
+  font-size: .76rem;
+  font-variant-numeric: tabular-nums;
+}
+.category:hover .categoryCount {
+  color: var(--accent);
+}
 
 @media (max-width: 1023px) {
   /* 窄屏改成上下堆叠，概览块占满一行 */

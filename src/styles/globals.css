@@ -11,6 +11,10 @@
   --surface3: #e2e5ea;
   --accent: #1b4b8f;
   --accent-soft: rgba(27,75,143,.10);
+  /* 搜索命中高亮的底色。比 --accent-soft（悬停/次要底色用）重一档：
+     高亮要在一屏数据里被一眼扫到，悬停那个浓度不够。
+     压在其上的文字对比：--text 13.1:1、--muted 4.9:1 —— 都过 AA。 */
+  --accent-mark: rgba(27,75,143,.18);
   /* 压在 --accent 上的文字色。不要在任何组件里硬编码 #fff，统一走这个变量
      （#ffffff 对 --accent #1b4b8f 是 8.57:1，过 WCAG AA）。 */
   --on-accent: #ffffff;
@@ -26,8 +30,12 @@
   /* 名录表格的斑马纹底色。**不要改成 --surface2**（表格 hover 用的那个）：
      --muted2（空值「—」的色）压在 --surface2 #eef0f3 上只有 4.23:1，低于 AA 4.5。
      #f8f9fb 对表内各种文字色的实测值：--muted2 4.59:1、--muted 5.75:1、
-     --accent（电话/邮箱链接）8.14:1、--text 16.06:1 —— 全部达标。 */
+     --accent（「邮件联系」按钮文字）8.14:1、--text 16.06:1 —— 全部达标。 */
   --surface-zebra: #f8f9fb;
+  /* 顶栏高度。⚠️ 它同时被 SiteHeader.module.css 的 .inner 与 Overview.module.css
+     的首屏 min-height（100svh - --header-h）引用，是同一个数的两处用法：
+     改这里顶栏会跟着变高变矮，但**不要**去 SiteHeader 里另写一个高度值。 */
+  --header-h: 60px;
   --radius: 10px;
   --radius-sm: 6px;
   --shadow: 0 1px 3px rgba(0,0,0,.10);
@@ -38,11 +46,33 @@
 /* ─── Reset ──────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; font-size: 15px; }
+/* 平滑滚动对前庭功能敏感的人是实打实的不适源。系统里开了「减少动态效果」就关掉。
+   ⚠️ 这条只管 CSS 触发的滚动（锚点跳转、scrollIntoView）；
+   JS 里 window.scrollTo({behavior:'smooth'}) 不受它约束，得自己判 —— 见 BackToTop。 */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+/* 顶栏 / 内容 / 页脚三段纵向排布。main 取 flex:1 是为了内容很短的页面
+   （404 最典型）页脚仍落在视口底部，而不是紧跟着内容浮在屏幕中间。
+   min-height 用 100svh：移动端浏览器地址栏收放时 100vh 会跳，svh 不会。 */
 body {
   font-family: var(--font);
   background: var(--bg);
   color: var(--text);
   line-height: 1.6;
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+/* main 自己也做纵向 flex 容器，是为了让**内容很短的页面**（404 最典型）里那个
+   「整屏居中」的区块能靠 flex:1 撑满顶栏与页脚之间的空隙 ——
+   若让 404 自己写 min-height:100svh，它会连顶栏页脚的高度一起算进 100svh 里，
+   页脚被顶到视口外面去。 */
+main {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
 }
 a { color: inherit; text-decoration: none; }
 img { display: block; max-width: 100%; }

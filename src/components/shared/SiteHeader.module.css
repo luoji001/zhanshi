@@ -1,0 +1,91 @@
+/* 配色一律走 globals.css 的令牌，不要硬编码颜色。
+   ⚠️ .inner 的高度必须等于 globals.css 的 --header-h：概览首屏的 min-height 是
+   `100svh - var(--header-h)`，两者对不上时首屏要么露出一截页脚、要么差一截没铺满。
+   改高度就改 --header-h，不要在下面写死第二个数。 */
+.header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+/* 与 .section-container 同一套对齐：max-width 1280px + 左右 24px 内边距。
+   顶栏品牌因此与各区块的标题左边缘严格对齐 —— 数值不一致会看出一条错位。 */
+.inner {
+  max-width: 1280px;
+  height: var(--header-h);
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.mark {
+  flex-shrink: 0;
+}
+/* 方块用 --accent，字形用压在其上的 --on-accent —— 与 icon.svg 同一组色，
+   只是这里必须经 CSS 表出（SVG 属性里写不了 var()）。 */
+.mark rect {
+  fill: var(--accent);
+}
+.mark path {
+  fill: var(--on-accent);
+}
+
+.name {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.brand:hover .name {
+  color: var(--accent);
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* --muted 对 --surface 是 5.75:1，过 AA。hover 与 focus 都换 --accent（8.57:1） */
+.navLink {
+  padding: 7px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  font-size: .9rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: color var(--transition), background var(--transition);
+}
+.navLink:hover {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+/* 外扩的焦点圈会顶出 60px 高的顶栏，故用内描边 */
+.navLink:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* 与 .section-container 的 767px 断点保持一致 */
+@media (max-width: 767px) {
+  .inner {
+    padding: 0 16px;
+  }
+  .name {
+    font-size: .95rem;
+  }
+  .navLink {
+    padding: 7px 9px;
+  }
+}

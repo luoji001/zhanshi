@@ -1,41 +1,36 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import Directory from '@/components/sections/Directory';
 import DataSource from '@/components/sections/DataSource';
-import styles from './page.module.css';
+import BackToTop from '@/components/shared/BackToTop';
 
 // description 与首页 layout.tsx 那条**刻意写得不一样**：两页摘要重复是 SEO 减分项。
 // 这条只讲这一页有什么（完整表格 + 能检索排序 + 附口径说明），不复述首页的定位。
 export const metadata: Metadata = {
   title: '名录数据与数据说明',
   description:
-    '完整的厂商名录表格，可按关键词检索、按厂商筛选、点表头排序，并附字段口径与数据来源说明。',
+    '完整的厂商名录表格，可按关键词检索、按厂商与品类筛选、点表头排序，并附字段口径与数据来源说明。',
 };
 
 /**
  * 数据页 = 名录表格（主角）+ 数据说明。首页只留概览，两块数据内容都搬到了这里。
  *
- * 全站没有导航栏，两页之间只有两条通路：首页的两个按钮（见 lib/content.ts 的
- * overview.actions）与这里的返回链接。改动其中一个，记得同步另一个。
+ * ⚠️ 2026-09-22 删掉了页首那颗「← 返回概览」胶囊与它那条蓝色带
+ * （原 app/data/page.module.css，已随之下线）。
+ * 它当初存在的唯一理由写在旧注释里：「全站没有导航栏，这里与首页的按钮是两页之间
+ * 仅有的通路」。现在根 layout 有了常驻顶栏（src/components/shared/SiteHeader.tsx），
+ * 顶栏那条「概览」就是回去的路，且**滚动到哪儿都在** —— 胶囊版本滚到底部就看不见了，
+ * 这一点旧注释自己也承认。留着它只会与顶栏重复，还让 /data 看起来像个文档页。
+ *
+ * 蓝色带没有消失：它原本由这里的 .backBar 起头、与 Directory 区块接成一条，
+ * 现在整条带子从 Directory 自己开始（见 Directory.module.css 的 .section）。
  */
 export default function DataPage() {
   return (
     <>
-      {/* 外层铺满全宽的蓝带（与下面 Directory 区块接成一条），内层负责 1280px 对齐 */}
-      <div className={styles.backBar}>
-        <div className={styles.backBarInner}>
-          {/* 箭头与文字各占一个 span：箭头要单独 hover 位移，混在一段文本里推不动。
-              aria-hidden 是因为「←」对读屏是噪音，链接文字「返回概览」已经说清了去处。 */}
-          <Link href="/" className={styles.back}>
-            <span className={styles.backArrow} aria-hidden="true">
-              ←
-            </span>
-            <span>返回概览</span>
-          </Link>
-        </div>
-      </div>
       <Directory />
       <DataSource />
+      {/* 只挂在这一页：这一页近 5000px 高，且筛选控件全在最上面（原因见该组件） */}
+      <BackToTop />
     </>
   );
 }
