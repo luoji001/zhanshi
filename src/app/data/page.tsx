@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import { dataSource, repo, site } from '@/lib/content';
+import { getDirectory } from '@/lib/suppliers';
 import Directory from '@/components/sections/Directory';
 import DataSource from '@/components/sections/DataSource';
 import BackToTop from '@/components/shared/BackToTop';
@@ -25,8 +27,43 @@ export const metadata: Metadata = {
  * 现在整条带子从 Directory 自己开始（见 Directory.module.css 的 .section）。
  */
 export default function DataPage() {
+  const { columns, source } = getDirectory();
+
+  /**
+   * schema.org Dataset 结构化数据（构建期写死的静态对象，不含任何用户输入）。
+   * 目的：让搜索引擎与数据集检索工具把这一页识别成**数据集**而不是普通网页，
+   * 从而把它当可引用的数据来源收录。字段只写站上真实成立的：
+   * license 是 canonical 的英文许可地址（不是中文 deed），distribution 指向 /data.csv。
+   * ⚠️ 别在这里补 temporalCoverage / spatialCoverage 之类的字段 —— 采集范围与时间
+   * 范围尚未确定（Phase B 随「数据方法」一起补），编一个出来就是造假。
+   */
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Dataset',
+    name: site.name,
+    description:
+      '源头厂商的供货记录数据集：厂商名称、品类、供应货品、价格、联系电话、邮件地址与源文件的验证标注。联系方式已遮挡，完整源文件公开可查。',
+    url: `${site.url}/data`,
+    license: 'https://creativecommons.org/licenses/by/4.0/',
+    creator: { '@type': 'Organization', name: dataSource.citation.attribution, url: repo.url },
+    dateModified: source.snapshotDate,
+    isAccessibleForFree: true,
+    variableMeasured: columns.map(c => c.label),
+    distribution: [
+      {
+        '@type': 'DataDownload',
+        contentUrl: `${site.url}/data.csv`,
+        encodingFormat: 'text/csv',
+      },
+    ],
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <Directory />
       <DataSource />
       {/* 只挂在这一页：这一页近 5000px 高，且筛选控件全在最上面（原因见该组件） */}

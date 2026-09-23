@@ -49,6 +49,16 @@
   line-height: 1.65;
 }
 
+/* 「关于本站」。比 tagline 再低一级：它回答「谁在维护」，属于元信息，
+   不该和「这个站是什么」抢注意力。--muted2 对 --surface 4.83:1，过 AA。 */
+.about {
+  max-width: 46ch;
+  margin-top: 4px;
+  color: var(--muted2);
+  font-size: .8rem;
+  line-height: 1.6;
+}
+
 .links {
   display: flex;
   flex-wrap: wrap;
@@ -91,6 +101,22 @@
   color: var(--muted2);
   font-size: .8rem;
   font-variant-numeric: tabular-nums;
+}
+
+/* 底栏里的外链（源文件）。--muted 对 --surface 5.75:1，过 AA；
+   比周围的 --muted2 深一档，让「这里可以点」自己显出来，不靠颜色以外的提示。 */
+.metaLink {
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color var(--transition);
+}
+.metaLink:hover {
+  color: var(--accent);
+}
+.metaLink:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 @media (max-width: 767px) {

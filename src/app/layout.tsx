@@ -1,8 +1,34 @@
 import type { Metadata } from 'next';
+import { Inter, Noto_Sans_SC } from 'next/font/google';
 import { site } from '@/lib/content';
 import SiteHeader from '@/components/shared/SiteHeader';
 import SiteFooter from '@/components/shared/SiteFooter';
 import '@/styles/globals.css';
+
+/**
+ * 字体自托管（2026-09-23）。此前是 <link> 引 Google Fonts，两处问题：
+ * 1. 它是全站唯一的第三方运行时请求，与页脚「不加载第三方脚本」的说法打架；
+ * 2. 中国大陆访问 Google Fonts 不稳定，加载失败会直接掉到系统字体，版式跟着变。
+ * 改用 next/font 后字体在**构建期**下载、随静态产物自托管，运行时零第三方请求。
+ *
+ * ⚠️ 构建机必须能访问 fonts.googleapis.com；拉了哪些文件构建后可
+ * `ls out/_next/static/media` 验证（Noto Sans SC 的中文切片会有很多个）。
+ * ⚠️ 字体栈只写在 globals.css 的 --font 里，引用这里的两个 CSS 变量，不要在组件里另写。
+ */
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+});
+
+// 中文部分由上百个 unicode-range 切片组成，逐个预加载没有意义，故 preload: false；
+// subsets 仍要写：next/font 的参数校验要求给值（它只影响预加载哪些切片）
+const notoSansSC = Noto_Sans_SC({
+  subsets: ['latin'],
+  preload: false,
+  variable: '--font-noto',
+  display: 'swap',
+});
 
 /**
  * ⚠️ description 是**搜索引擎结果里显示的那行字**，比页面正文更「对外」。
@@ -11,12 +37,13 @@ import '@/styles/globals.css';
  * 与 data/page.tsx 的 description **不要写成同一句**：两页摘要重复是 SEO 上的减分项。
  */
 const DESCRIPTION =
-  '收录源头厂商的供货记录，含货品、价格与联系方式。数据取自同一份源文件、原样呈现，可按关键词检索、按厂商筛选。';
+  '收录源头厂商的供货记录，含货品、价格与联系方式。数据取自同一份公开源文件、可逐条核对，支持关键词检索与厂商筛选，联系方式已在页面遮挡。';
 
 export const metadata: Metadata = {
   // og:image 必须是**绝对地址**平台才认，所以得先告诉 Next 站点的正式地址。
-  // 换域名时这里要一起改，否则分享卡片会是坏图。
-  metadataBase: new URL('https://zhanshi.liangpengzhan.workers.dev'),
+  // ⚠️ 地址统一放 content.ts 的 site.url（robots/sitemap/JSON-LD/引用格式同源），
+  // 不要在这里另写字面量 —— 换域名时漏一处，分享卡片就会是坏图。
+  metadataBase: new URL(site.url),
 
   // 模板只作用于子页面：/data 的「名录数据与数据说明」会渲染成
   //「名录数据与数据说明 · 源头厂商名录」。不配的话搜索结果里两条结果
@@ -46,15 +73,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="zh-CN">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap"
-          rel="stylesheet"
-        />
-      </head>
+    // 两个字体变量挂在 html 上（:root），globals.css 的 --font 引用它们。
+    // 外链 <head> 已随字体自托管一起删掉，不要再加回任何 <link rel="stylesheet">。
+    <html lang="zh-CN" className={`${inter.variable} ${notoSansSC.variable}`}>
       {/*
         顶栏 / 页脚挂在根 layout 上，两页与 404 共用 —— 站点外壳只写一遍，
         不然每加一页就要记得补一次（404 页尤其容易漏）。

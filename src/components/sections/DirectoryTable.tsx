@@ -442,13 +442,13 @@ function Chip({
 /**
  * 单元格渲染：空值统一显示「—」，价格多走一道 formatPrice。
  *
- * **电话不渲染成链接**：数据层已把它遮罩（suppliers.ts 的 maskPhone），
- * `138*****000` 剔掉非数字会得到 `tel:138000` —— 拨不通的坏链接，不如给纯文本。
+ * **电话与邮箱都不渲染成链接**：数据层已把两者遮罩（suppliers.ts 的 maskPhone /
+ * maskEmail），`138*****000` 剔掉非数字会得到 `tel:138000` —— 拨不通的坏链接；
+ * `hua****@qq.com` 也是个不存在的收件人，拼 mailto: 只会寄丢。
  *
- * **邮箱也不拿自己去拼 mailto:**，同样因为它被遮罩了（maskEmail），
- * `hua****@qq.com` 是个不存在的收件人。改用后面挂的「邮件联系」按钮走**空收件人**的
- * `mailto:`，只负责唤起邮件客户端，收件人由用户自己填。这是遮罩的必然代价，
- * 所以 aria-label 里必须写明「收件人需自行填写」，别删。
+ * ⚠️ 邮箱后挂的「邮件联系」按钮（空收件人 mailto:）已于 2026-09-23 删除：
+ * 它点了没用，是实打实的负体验。完整联系方式在公开源文件里（见 /data 数据说明），
+ * 页面上不再留任何伪出口 —— **不要再加回按钮或 mailto:**。
  */
 function Cell({
   row,
@@ -474,21 +474,6 @@ function Cell({
     return (
       <>
         <Highlight text={formatPrice(value)} query={query} />
-      </>
-    );
-  }
-
-  if (col.key === 'email') {
-    return (
-      <>
-        <Highlight text={value} query={query} />
-        <a
-          className={styles.mailBtn}
-          href="mailto:"
-          aria-label="打开邮件客户端，收件人需自行填写"
-        >
-          邮件联系
-        </a>
       </>
     );
   }

@@ -12,7 +12,8 @@
  * Excel 里多出的列宁可报错也不静默丢弃。
  */
 
-import { readFileSync, statSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 // 带扩展名 import：Node 的 ESM 解析器不做扩展名补全，scripts/check-data.mjs 要能
 // 直接 import 本文件就必须写全（需 tsconfig 的 allowImportingTsExtensions，已开）。
@@ -22,6 +23,18 @@ import { formatPrice } from './format.ts';
 
 /** 数据源。相对仓库内本项目根目录；换数据就是换这一个文件 */
 export const EXCEL_PATH = 'src/excel/源头厂商.xlsx';
+
+/**
+ * 数据快照日期（YYYY-MM-DD）：源文件里这批数据自身的日期，**由维护者手工维护**。
+ *
+ * ⚠️ 不要改回读文件 mtime（`statSync().mtime`）。构建机（Cloudflare）是 git clone
+ * 后构建，checkout 会把 mtime 设成构建时刻 —— 页面显示的会是「最近一次部署日期」，
+ * 却自称「源文件更新于」，是事实性误导。本地同样不可靠：实测 2026-09-22 提交的
+ * 数据，mtime 是 2026-09-21。
+ *
+ * 换数据时必须同步改这里；scripts/check-data.mjs 会拿 mtime 比对并告警提醒。
+ */
+export const DATA_SNAPSHOT_DATE = '2026-09-22';
 
 /**
  * 名录表格的一行。字段顺序与固定 7 列一一对应，**顺序不可改**。
@@ -106,25 +119,56 @@ export interface DirectoryStat {
   unit: string;
 }
 
-/** 品类分布里的一项 */
-export interface CategoryCount {
+/** 「取值 → 条数」分布里的一项。品类分布与「是否验证」分布共用同一形状 */
+export interface ValueCount {
   name: string;
-  /** 该品类下的记录条数 */
+  /** 该取值出现的条数 */
   count: number;
+}
+
+/** 品类分布里的一项（ValueCount 的语义别名，保留旧名不动调用方） */
+export type CategoryCount = ValueCount;
+
+/**
+ * 数据体检：全部由 rows 在构建期推导，**不手写、不美化**。
+ * 数据变差时这里如实变差 —— 这正是它可信的原因，别为了好看把它写死。
+ */
+export interface DataQuality {
+  /** 非空单元格数 / 总单元格数（总数为 0 时调用方不展示这一项） */
+  filledCells: number;
+  totalCells: number;
+  /** 七个字段完全相同的重复行组数（0 最好；不为 0 也要如实显示） */
+  duplicateGroups: number;
+  /** 价格能解析为数字的条数 / 有价格的条数 */
+  priceParsable: number;
+  priceTotal: number;
+  /** 「是否验证」按源文件原样取值的分布，按条数降序（口径归数据源，站点不判定） */
+  verifiedBreakdown: ValueCount[];
 }
 
 export interface Directory {
   rows: SupplierRow[];
+  /**
+   * rows[i] 对应的**源文件 Excel 行号**（1 基，表头是第 1 行）。
+   * 给下载文件 /data.csv 的 source_row 列用 —— 拿到 CSV 的人可据此在源文件里
+   * 定位到同一行。**不要在页面上按数组下标另算行号**：解析时跳过的整行空行会让
+   * 下标与真实行号错位，只有这里记录的值是准的（见 xlsx.ts 的 declaredRow）。
+   */
+  sourceRows: number[];
   columns: readonly DirectoryColumn[];
   /** 由 rows 推导，算不出来的指标不会出现——**绝不编造数字** */
   stats: DirectoryStat[];
   /** 品类分布，供首页那条品类索引带使用。同样只由 rows 推导 */
   categoryCounts: CategoryCount[];
+  /** 数据体检，见 DataQuality */
+  quality: DataQuality;
   source: {
     /** 展示用的相对路径 */
     file: string;
-    /** 文件最后修改日期 YYYY-MM-DD，取自真实文件属性 */
-    updatedAt: string;
+    /** 数据快照日期 YYYY-MM-DD，取 DATA_SNAPSHOT_DATE（见其注释，不读文件 mtime） */
+    snapshotDate: string;
+    /** 源文件内容的 SHA-256（小写十六进制全串）。展示时截前 8 位即可，见 DataSource */
+    sha256: string;
   };
 }
 
@@ -152,11 +196,6 @@ const FIELD_LABEL: Record<keyof SupplierRow, string> = {
 /** 该字段是否已有内容（空串视为空） */
 export function isFilled(v: string): boolean {
   return v.trim() !== '';
-}
-
-function formatDate(d: Date): string {
-  const p = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
 /* ─── 联系方式遮挡 ────────────────────────────────────────────────────── */
@@ -322,6 +361,65 @@ function categoryBreakdown(rows: SupplierRow[]): CategoryCount[] {
 }
 
 /**
+ * 某个字段的取值分布，按条数降序、同数按中文顺序。
+ *
+ * 与 categoryBreakdown 的区别：**空值也单独成一项**（name 为空串），
+ * 由展示层决定怎么标（页面统一把空显示成「—」），不在这里替它编「未知」。
+ * 给「是否验证」分布用 —— 该列的取值口径由数据源定，站点只数、不解释。
+ */
+function valueBreakdown(rows: SupplierRow[], field: keyof SupplierRow): ValueCount[] {
+  const counts = new Map<string, number>();
+  for (const row of rows) {
+    const name = row[field].trim();
+    counts.set(name, (counts.get(name) ?? 0) + 1);
+  }
+  return [...counts]
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'zh-CN'));
+}
+
+/**
+ * 数据体检。全部由 rows 真实推导，**没有任何一项是写死的**：
+ * - 完整率按「7 字段 × 记录数」逐格数，空串算空
+ * - 重复行按 7 字段全同判定（判的是**遮挡后**的值；遮挡是确定性的，
+ *   不会把不同行误判成相同，也不会把相同行误判成不同）
+ * - 价格可解析数只数**有价格**的行，空价格不计入分母
+ */
+function deriveQuality(rows: SupplierRow[]): DataQuality {
+  const totalCells = rows.length * FIELD_ORDER.length;
+  let filledCells = 0;
+  for (const row of rows) {
+    for (const field of FIELD_ORDER) {
+      if (isFilled(row[field])) filledCells++;
+    }
+  }
+
+  const seen = new Map<string, number>();
+  for (const row of rows) {
+    const key = FIELD_ORDER.map(f => row[f]).join('\u0000');
+    seen.set(key, (seen.get(key) ?? 0) + 1);
+  }
+  const duplicateGroups = [...seen.values()].filter(n => n > 1).length;
+
+  let priceParsable = 0;
+  let priceTotal = 0;
+  for (const row of rows) {
+    if (!isFilled(row.price)) continue;
+    priceTotal++;
+    if (Number.isFinite(Number(row.price.trim()))) priceParsable++;
+  }
+
+  return {
+    filledCells,
+    totalCells,
+    duplicateGroups,
+    priceParsable,
+    priceTotal,
+    verifiedBreakdown: valueBreakdown(rows, 'verified'),
+  };
+}
+
+/**
  * 读取并解析名录数据。每次调用都会重读文件：开发模式下改完 Excel 刷新页面即生效，
  * 构建模式下在渲染期读取一次并烘进静态产物。
  */
@@ -344,6 +442,7 @@ export function getDirectory(): Directory {
   const mapping = mapHeader(header);
 
   const rows: SupplierRow[] = [];
+  const sourceRows: number[] = [];
   for (let i = 1; i < grid.length; i++) {
     const cells = grid[i];
     const row = {} as SupplierRow;
@@ -359,20 +458,23 @@ export function getDirectory(): Directory {
     row.phone = maskPhone(row.phone);
     row.email = maskEmail(row.email);
     rows.push(row);
-  }
-
-  let updatedAt: string;
-  try {
-    updatedAt = formatDate(statSync(absolute).mtime);
-  } catch {
-    updatedAt = '';
+    // Excel 行号 = 网格下标 + 1（grid[0] 是表头，即 Excel 第 1 行）。
+    // ⚠️ 必须在这里记，不能拿 rows 的下标另算：上面跳过整行空行会让下标整体前移。
+    sourceRows.push(i + 1);
   }
 
   return {
     rows,
+    sourceRows,
     columns: DIRECTORY_COLUMNS,
     stats: deriveStats(rows),
     categoryCounts: categoryBreakdown(rows),
-    source: { file: EXCEL_PATH, updatedAt },
+    quality: deriveQuality(rows),
+    source: {
+      file: EXCEL_PATH,
+      snapshotDate: DATA_SNAPSHOT_DATE,
+      // 源文件内容的指纹：访客拿到同一份文件可自行算哈希核对（展示时截前 8 位）
+      sha256: createHash('sha256').update(buf).digest('hex'),
+    },
   };
 }

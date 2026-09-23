@@ -50,9 +50,10 @@ export default function Overview() {
               </div>
             ))}
           </dl>
-          {/* 文件更新日期取自真实文件属性；取不到就整行不显示，不写「未知」这类填充物 */}
-          {source.updatedAt !== '' && (
-            <p className={styles.scaleMeta}>源文件更新于 {source.updatedAt}</p>
+          {/* 数据快照日期由维护者手工维护（见 suppliers.ts 的 DATA_SNAPSHOT_DATE）。
+              ⚠️ 不要再改回文件 mtime：CI 上它是 checkout 时间，显示出来是说谎 */}
+          {source.snapshotDate !== '' && (
+            <p className={styles.scaleMeta}>数据快照 {source.snapshotDate}</p>
           )}
           {/* 这里曾有一个「查看全部数据 →」链接，已删：它与左侧主按钮「查看名录数据」
               同指 /data，是重复入口。首页现在只留两个去向不同的操作

@@ -30,7 +30,7 @@
   /* 名录表格的斑马纹底色。**不要改成 --surface2**（表格 hover 用的那个）：
      --muted2（空值「—」的色）压在 --surface2 #eef0f3 上只有 4.23:1，低于 AA 4.5。
      #f8f9fb 对表内各种文字色的实测值：--muted2 4.59:1、--muted 5.75:1、
-     --accent（「邮件联系」按钮文字）8.14:1、--text 16.06:1 —— 全部达标。 */
+     --accent（行内强调文字）8.14:1、--text 16.06:1 —— 全部达标。 */
   --surface-zebra: #f8f9fb;
   /* 顶栏高度。⚠️ 它同时被 SiteHeader.module.css 的 .inner 与 Overview.module.css
      的首屏 min-height（100svh - --header-h）引用，是同一个数的两处用法：
@@ -40,7 +40,9 @@
   --radius-sm: 6px;
   --shadow: 0 1px 3px rgba(0,0,0,.10);
   --shadow-sm: 0 1px 2px rgba(0,0,0,.08);
-  --font: 'Inter', 'Noto Sans SC', system-ui, sans-serif;
+  /* 字体栈：两个自托管变量（由 app/layout.tsx 的 next/font 生成，含度量兜底字体）
+     在前，system-ui 兜底。**不要在组件里另写字体栈**，全站只此一处。 */
+  --font: var(--font-inter), var(--font-noto), system-ui, sans-serif;
   --transition: .2s ease;
 }
 /* ─── Reset ──────────────────────────────────────────────────────────── */

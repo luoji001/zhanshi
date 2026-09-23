@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { site } from '@/lib/content';
+import { repo, site } from '@/lib/content';
 import { getDirectory } from '@/lib/suppliers';
 import styles from './SiteFooter.module.css';
 
@@ -10,11 +10,14 @@ import styles from './SiteFooter.module.css';
  * 而整棵 layout 本来就是构建期渲染的，所以这里没有 DirectoryTable 那条
  * 「客户端组件不能值导入 suppliers.ts」的限制。
  *
- * ⚠️ 页脚里**只放站上真实存在的事**：站点名、两页入口、由 Excel 推导出的收录条数
- * 与源文件更新日期、以及「联系方式已遮挡」这句必须说清的话。
+ * ⚠️ 页脚里**只放站上真实存在的事**：站点名、两页入口、由 Excel 推导出的收录条数、
+ * 数据快照日期、公开仓库（源文件与数据勘误入口）。
  * **不写公司主体、备案号、客服电话、二维码** —— 本站是纯数据展示页，不承载主体信息
  * （见 content.ts 的 overview.title 注释），编一个出来就是造假，也正是这个项目
  * 一路在防的事（算不出来的指标宁可不显示）。
+ *
+ * 2026-09-23 加了三样，都是「信任基建」：谁在维护（about）、
+ * 数据可自行核对（sourceLink）、发现问题能告诉谁（footerLinks 里的「数据勘误」）。
  */
 export default function SiteFooter() {
   const { rows, source } = getDirectory();
@@ -43,24 +46,52 @@ export default function SiteFooter() {
               {site.name}
             </p>
             <p className={styles.tagline}>{site.footer.tagline}</p>
+            <p className={styles.about}>{site.footer.about}</p>
+            <p className={styles.about}>{site.footer.privacy}</p>
           </div>
 
           <nav className={styles.links} aria-label="页脚导航">
-            {site.footerLinks.map(item => (
-              <Link key={item.href} href={item.href} className={styles.link}>
-                {item.label}
-              </Link>
-            ))}
+            {/* 外链走 <a target="_blank" rel="noopener noreferrer">：next/link 是给
+                站内路由用的，把 GitHub 地址交给它不会开新标签，用户就离开了本站 */}
+            {site.footerLinks.map(item =>
+              item.external ? (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  className={styles.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {item.label}
+                </a>
+              ) : (
+                <Link key={item.href} href={item.href} className={styles.link}>
+                  {item.label}
+                </Link>
+              )
+            )}
           </nav>
         </div>
 
         <div className={styles.bottom}>
-          {/* 与首页「数据概览」同源。更新日期取不到时只少那半句，不留「未知」 */}
+          {/* 与首页「数据概览」同源。快照日期取不到时只少那半句，不留「未知」 */}
           <p className={styles.meta}>
             收录 {rows.length} 条
-            {source.updatedAt !== '' && ` · 源文件更新于 ${source.updatedAt}`}
+            {source.snapshotDate !== '' && ` · 数据快照 ${source.snapshotDate}`}
           </p>
-          <p className={styles.meta}>{site.footer.masked}</p>
+          {/* 遮挡声明必须带上源文件链接：光说「完整值在源文件里」而不给去处，
+              等于把「可自行核对」变成一句空话 */}
+          <p className={styles.meta}>
+            {site.footer.masked}{' '}
+            <a
+              className={styles.metaLink}
+              href={repo.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {site.footer.sourceLink}
+            </a>
+          </p>
         </div>
       </div>
     </footer>
